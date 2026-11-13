@@ -1,0 +1,16 @@
+{
+  "name": "versity-project-capstone",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Unified full-stack project for Versity Project Capstone",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"npm run dev --prefix Server\" \"npm run dev --prefix Clint\"",
+    "dev:server": "npm run dev --prefix Server",
+    "dev:client": "npm run dev --prefix Clint",
+    "build": "npm run build --prefix Clint",
+    "install:all": "npm install && npm --prefix Clint install && npm --prefix Server install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
