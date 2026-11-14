@@ -4,6 +4,7 @@ import AuthRoutes from '../module/Auth/auth.route.js';
 import BusRoutes from '../module/Bus/bus.route.js';
 import DriverRoutes from '../module/Driver/driver.route.js';
 import RouteRoutes from '../module/Route/route.route.js';
+import ScheduleRoutes from '../module/Schedule/schedule.route.js';
 import TransportationManagerRoutes from '../module/TransportationManager/transportationManager.route.js';
 import UserRoutes from '../module/User/user.route.js';
 
@@ -37,6 +38,10 @@ const moduleRoutes = [
   {
     path: '/routes',
     route: RouteRoutes,
+  },
+  {
+    path: '/schedules',
+    route: ScheduleRoutes,
   },
 ];
 
