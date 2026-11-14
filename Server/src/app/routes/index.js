@@ -41,14 +41,12 @@ const moduleRoutes = [
     route: RouteRoutes,
   },
   {
-  {
     path: '/schedules',
     route: ScheduleRoutes,
   },
   {
     path: '/stop-associated',
     route: StopAssociatedRoutes,
-  },
   },
 ];
 
