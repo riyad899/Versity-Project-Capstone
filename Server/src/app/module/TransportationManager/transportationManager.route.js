@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import checkAuth from '../../../middleware/checkAuth.js';
 import validateReq from '../../../middleware/validateReq.js';
+import BusController from '../Bus/bus.controller.js';
+import BusValidation from '../Bus/bus.validation.js';
 import TransportationManagerController from './transportationManager.controller.js';
 import TransportationManagerValidation from './transportationManager.validation.js';
 
@@ -52,6 +54,21 @@ router.patch(
   '/users/:id/make-driver',
   checkAuth('transportation-manager', 'admin'),
   TransportationManagerController.makeUserDriver
+);
+
+// Protected Bus Assignment Aliases (Assign Driver / Assign Route)
+router.patch(
+  '/buses/:id/assign-driver',
+  checkAuth('transportation-manager', 'admin'),
+  validateReq(BusValidation.assignDriverValidationSchema),
+  BusController.assignDriver
+);
+
+router.patch(
+  '/buses/:id/assign-route',
+  checkAuth('transportation-manager', 'admin'),
+  validateReq(BusValidation.assignRouteValidationSchema),
+  BusController.assignRoute
 );
 
 export const TransportationManagerRoutes = router;
