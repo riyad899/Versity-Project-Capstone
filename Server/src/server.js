@@ -1,3 +1,13 @@
+import dns from 'node:dns';
+
+// Fix for querySrv ECONNREFUSED on Node.js / Windows with ISP/local DNS
+try {
+  dns.setDefaultResultOrder('ipv4first');
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch (error) {
+  console.warn('Could not set custom DNS servers:', error.message);
+}
+
 import app from './app.js';
 import connectDB from './app/lib/db.js';
 import envVars from './config/env.js';
