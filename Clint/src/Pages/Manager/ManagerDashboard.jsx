@@ -608,6 +608,7 @@ export default function ManagerDashboard() {
         onClose={() => setAssignDriverModal(null)}
         bus={assignDriverModal}
         drivers={drivers}
+        buses={buses}
         selectedDriverId={selectedDriverId}
         setSelectedDriverId={setSelectedDriverId}
         onSubmit={handleAssignDriver}

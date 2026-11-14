@@ -21,6 +21,18 @@ const createScheduleIntoDB = async (payload, createdBy) => {
     if (!driver || driver.role !== 'driver') {
       throw new AppError(400, 'Assigned user must be an active registered driver!');
     }
+
+    // Check if driver is already assigned to another bus
+    const otherBus = await Bus.findOne({
+      assignedDriver: driverId,
+      _id: { $ne: payload.bus },
+    });
+    if (otherBus) {
+      throw new AppError(
+        400,
+        `Driver "${driver.name}" is already assigned to bus "${otherBus.name}" (#${otherBus.busNumber})!`
+      );
+    }
   } else if (bus.assignedDriver) {
     driverId = bus.assignedDriver;
   }
