@@ -19,7 +19,9 @@
    - [Transportation Manager Endpoints (`/api/v1/transportation-managers`)](#64-transportation-manager-module-apiv1transportation-managers)
    - [Bus Fleet Management (`/api/v1/buses`)](#65-bus-fleet-management-apiv1buses)
    - [Route Management (`/api/v1/routes`)](#66-route-management-apiv1routes)
-   - [Admin Management & Analytics (`/api/v1/admin`)](#67-admin-management--analytics-apiv1admin)
+   - [Stop Associated Module (`/api/v1/stop-associated`)](#67-stop-associated-module-apiv1stop-associated--apiv1route-stops)
+   - [Bus Schedule Management (`/api/v1/schedules`)](#68-bus-schedule-management-apiv1schedules)
+   - [Admin Management & Analytics (`/api/v1/admin`)](#69-admin-management--analytics-apiv1admin)
 7. [Database Schemas & Data Models](#7-database-schemas--data-models)
 8. [Setup, Environment Variables & Execution Guide](#8-setup-environment-variables--execution-guide)
 
@@ -475,7 +477,49 @@ This module manages intermediate bus pickup/dropoff stations situated between a 
 
 ---
 
-### 6.8. Admin Management & Analytics (`/api/v1/admin`)
+### 6.8. Bus Schedule Management (`/api/v1/schedules`)
+
+Enables Transportation Managers and Admins to create, update, browse, and delete bus schedules with departure/arrival times, operating days, status, and driver assignments.
+
+#### 1. Create Bus Schedule
+- **Method & Route**: `POST /api/v1/schedules`
+- **Access**: Protected (`transportation-manager`, `admin`)
+- **Request Body**:
+  ```json
+  {
+    "bus": "65123456789abcdef0123456",
+    "route": "65123456789abcdef0123457",
+    "driver": "65123456789abcdef0123458", // Optional
+    "departureTime": "08:00 AM",
+    "arrivalTime": "08:45 AM",
+    "operatingDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    "status": "active", // 'active' | 'inactive' | 'delayed' | 'completed' | 'cancelled'
+    "remarks": "Morning express peak shuttle"
+  }
+  ```
+
+#### 2. Get All Bus Schedules
+- **Method & Route**: `GET /api/v1/schedules`
+- **Access**: Authenticated (`user`, `driver`, `transportation-manager`, `admin`)
+- **Query Params**: `?status=active&day=Monday&search=express`
+- **Response**: List of schedules with populated `bus`, `route`, `driver`, and `createdBy` details.
+
+#### 3. Get Bus Schedule by ID
+- **Method & Route**: `GET /api/v1/schedules/:id`
+- **Access**: Authenticated (`user`, `driver`, `transportation-manager`, `admin`)
+
+#### 4. Update Bus Schedule
+- **Method & Route**: `PATCH /api/v1/schedules/:id`
+- **Access**: Protected (`transportation-manager`, `admin`)
+- **Request Body**: Editable schedule fields (`departureTime`, `arrivalTime`, `operatingDays`, `status`, `remarks`, `bus`, `route`, `driver`).
+
+#### 5. Delete Bus Schedule
+- **Method & Route**: `DELETE /api/v1/schedules/:id`
+- **Access**: Protected (`transportation-manager`, `admin`)
+
+---
+
+### 6.9. Admin Management & Analytics (`/api/v1/admin`)
 
 #### 1. Admin Signup & Login
 - **Signup**: `POST /api/v1/admin/signup`
@@ -581,6 +625,30 @@ This module manages intermediate bus pickup/dropoff stations situated between a 
     enum: ['active', 'inactive'],
     default: 'active'
   },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 7.4. Bus Schedule Schema (`schedule`)
+```javascript
+{
+  bus: { type: Schema.Types.ObjectId, ref: 'Bus', required: true },
+  route: { type: Schema.Types.ObjectId, ref: 'Route', required: true },
+  driver: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  departureTime: { type: String, required: true, trim: true },
+  arrivalTime: { type: String, required: true, trim: true },
+  operatingDays: [{
+    type: String,
+    enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  }],
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'delayed', 'completed', 'cancelled'],
+    default: 'active'
+  },
+  remarks: { type: String, default: '' },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   createdAt: Date,
   updatedAt: Date

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useParams, useNavigate } from 'react-router'
 import apiClient from '../../Hooks/Axios'
 import toast from 'react-hot-toast'
 import {
@@ -7,6 +8,7 @@ import {
   Route,
   MapPin,
   ClipboardList,
+  CalendarClock,
   Plus,
 } from 'lucide-react'
 import { useAuth } from '../../Hooks/useAuth'
@@ -18,24 +20,44 @@ import ManagerUsersTab from './components/ManagerUsersTab'
 import ManagerBusFleetTab from './components/ManagerBusFleetTab'
 import ManagerDriverRouteAssignTab from './components/ManagerDriverRouteAssignTab'
 import ManagerRouteStopAssociateTab from './components/ManagerRouteStopAssociateTab'
+import ManagerScheduleTab from './components/ManagerScheduleTab'
 
 // Modular Modal Components
 import BusModal from './components/BusModal'
 import RouteModal from './components/RouteModal'
 import AssignDriverModal from './components/AssignDriverModal'
 import AssignRouteModal from './components/AssignRouteModal'
+import ScheduleModal from './components/ScheduleModal'
+
+const VALID_TABS = ['users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules']
+
+const DEFAULT_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 export default function ManagerDashboard() {
   const { user: currentAuthUser } = useAuth()
-  // Sidebar tabs: 'users', 'bus-infos', 'driver-assign', 'route-stop-associate'
-  const [activeTab, setActiveTab] = useState('users')
+  const { tab: urlTab } = useParams()
+  const navigate = useNavigate()
+
+  // Sidebar tabs: 'users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules'
+  const [activeTab, setActiveTab] = useState(
+    urlTab && VALID_TABS.includes(urlTab) ? urlTab : 'users'
+  )
+
+  // Sync tab with URL parameter if present
+  useEffect(() => {
+    if (urlTab && VALID_TABS.includes(urlTab) && urlTab !== activeTab) {
+      setActiveTab(urlTab)
+    }
+  }, [urlTab])
 
   // Data states
   const [users, setUsers] = useState([])
   const [buses, setBuses] = useState([])
   const [routes, setRoutes] = useState([])
   const [drivers, setDrivers] = useState([])
+  const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingSchedules, setLoadingSchedules] = useState(false)
   const [search, setSearch] = useState('')
 
   // Bus Modal states
@@ -65,6 +87,21 @@ export default function ManagerDashboard() {
     stops: '',
     scheduleTimes: '',
     status: 'active',
+  })
+
+  // Schedule Modal states
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [submittingSchedule, setSubmittingSchedule] = useState(false)
+  const [editingSchedule, setEditingSchedule] = useState(null)
+  const [scheduleForm, setScheduleForm] = useState({
+    bus: '',
+    route: '',
+    driver: '',
+    departureTime: '',
+    arrivalTime: '',
+    operatingDays: DEFAULT_DAYS,
+    status: 'active',
+    remarks: '',
   })
 
   // ---- Fetch functions ----
@@ -106,6 +143,19 @@ export default function ManagerDashboard() {
     }
   }, [])
 
+  const fetchSchedules = useCallback(async () => {
+    setLoadingSchedules(true)
+    try {
+      const params = search ? { search } : {}
+      const res = await apiClient.get('/api/v1/schedules', { params })
+      setSchedules(res.data?.data || [])
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to load bus schedules')
+    } finally {
+      setLoadingSchedules(false)
+    }
+  }, [search])
+
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers()
@@ -117,10 +167,21 @@ export default function ManagerDashboard() {
       fetchDrivers()
     } else if (activeTab === 'route-stop-associate') {
       fetchRoutes()
+    } else if (activeTab === 'schedules') {
+      fetchSchedules()
+      fetchBuses()
+      fetchRoutes()
+      fetchDrivers()
     }
-  }, [activeTab, fetchUsers, fetchBuses, fetchRoutes, fetchDrivers])
+  }, [activeTab, fetchUsers, fetchBuses, fetchRoutes, fetchDrivers, fetchSchedules])
 
   // ---- Handlers ----
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab)
+    setSearch('')
+    navigate(`/manager/${newTab}`)
+  }
+
   const handleMakeDriver = async (userId) => {
     try {
       await apiClient.patch(`/api/v1/transportation-managers/users/${userId}/make-driver`)
@@ -199,7 +260,7 @@ export default function ManagerDashboard() {
     if (!assignDriverModal) return
     try {
       const busId = assignDriverModal._id || assignDriverModal.id
-      await apiClient.patch(`/api/v1/transportation-managers/buses/${busId}/assign-driver`, {
+      await apiClient.patch(`/api/v1/buses/${busId}/assign-driver`, {
         driverId: selectedDriverId || null,
       })
       toast.success('Driver assignment updated!')
@@ -215,7 +276,7 @@ export default function ManagerDashboard() {
     if (!assignRouteModal) return
     try {
       const busId = assignRouteModal._id || assignRouteModal.id
-      await apiClient.patch(`/api/v1/transportation-managers/buses/${busId}/assign-route`, {
+      await apiClient.patch(`/api/v1/buses/${busId}/assign-route`, {
         routeId: selectedRouteId || null,
       })
       toast.success('Route assignment updated!')
@@ -299,6 +360,84 @@ export default function ManagerDashboard() {
     }
   }
 
+  // ---- Schedule Handlers ----
+  const resetScheduleForm = () => {
+    setEditingSchedule(null)
+    setScheduleForm({
+      bus: buses[0]?._id || buses[0]?.id || '',
+      route: buses[0]?.assignedRoute?._id || buses[0]?.assignedRoute?.id || routes[0]?._id || routes[0]?.id || '',
+      driver: buses[0]?.assignedDriver?._id || buses[0]?.assignedDriver?.id || '',
+      departureTime: '',
+      arrivalTime: '',
+      operatingDays: [...DEFAULT_DAYS],
+      status: 'active',
+      remarks: '',
+    })
+  }
+
+  const startEditSchedule = (schedule) => {
+    setEditingSchedule(schedule)
+    setScheduleForm({
+      bus: schedule.bus?._id || schedule.bus?.id || schedule.bus || '',
+      route: schedule.route?._id || schedule.route?.id || schedule.route || '',
+      driver: schedule.driver?._id || schedule.driver?.id || schedule.driver || '',
+      departureTime: schedule.departureTime || '',
+      arrivalTime: schedule.arrivalTime || '',
+      operatingDays: schedule.operatingDays || [...DEFAULT_DAYS],
+      status: schedule.status || 'active',
+      remarks: schedule.remarks || '',
+    })
+    setShowScheduleModal(true)
+  }
+
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault()
+    if (submittingSchedule) return
+    setSubmittingSchedule(true)
+    try {
+      const payload = {
+        bus: scheduleForm.bus,
+        route: scheduleForm.route,
+        driver: scheduleForm.driver || null,
+        departureTime: scheduleForm.departureTime?.trim(),
+        arrivalTime: scheduleForm.arrivalTime?.trim(),
+        operatingDays: scheduleForm.operatingDays,
+        status: scheduleForm.status,
+        remarks: scheduleForm.remarks || '',
+      }
+
+      if (editingSchedule) {
+        await apiClient.patch(`/api/v1/schedules/${editingSchedule._id || editingSchedule.id}`, payload)
+        toast.success('Bus schedule updated successfully!')
+      } else {
+        await apiClient.post('/api/v1/schedules', payload)
+        toast.success('New bus schedule created successfully!')
+      }
+
+      setShowScheduleModal(false)
+      resetScheduleForm()
+      fetchSchedules()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save bus schedule')
+    } finally {
+      setSubmittingSchedule(false)
+    }
+  }
+
+  const handleDeleteSchedule = async (schedule) => {
+    const desc = `${schedule.bus?.busNumber || 'Bus'} (${schedule.departureTime} → ${schedule.arrivalTime})`
+    if (!window.confirm(`Are you sure you want to delete the schedule for ${desc}?`)) {
+      return
+    }
+    try {
+      await apiClient.delete(`/api/v1/schedules/${schedule._id || schedule.id}`)
+      toast.success('Bus schedule removed successfully!')
+      fetchSchedules()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete bus schedule')
+    }
+  }
+
   return (
     <DashboardShell
       roleTitle="Manager Portal"
@@ -329,12 +468,15 @@ export default function ManagerDashboard() {
           label: 'Route Stop Associate',
           icon: MapPin,
         },
+        {
+          id: 'schedules',
+          label: 'Bus Schedules',
+          icon: CalendarClock,
+          badge: schedules.length,
+        },
       ]}
       activeTab={activeTab}
-      onTabChange={(tab) => {
-        setActiveTab(tab)
-        setSearch('')
-      }}
+      onTabChange={handleTabChange}
       headerActions={
         activeTab === 'bus-infos' ? (
           <Button
@@ -357,6 +499,17 @@ export default function ManagerDashboard() {
             className="h-9 px-3.5 text-xs sm:h-10 sm:px-4 sm:text-sm"
           >
             <Plus className="h-4 w-4 mr-1.5" /> Create Route
+          </Button>
+        ) : activeTab === 'schedules' ? (
+          <Button
+            type="button"
+            onClick={() => {
+              resetScheduleForm()
+              setShowScheduleModal(true)
+            }}
+            className="h-9 px-3.5 text-xs sm:h-10 sm:px-4 sm:text-sm"
+          >
+            <Plus className="h-4 w-4 mr-1.5" /> Create Bus Schedule
           </Button>
         ) : null
       }
@@ -412,6 +565,22 @@ export default function ManagerDashboard() {
         />
       )}
 
+      {/* TAB 5: BUS SCHEDULES */}
+      {activeTab === 'schedules' && (
+        <ManagerScheduleTab
+          schedules={schedules}
+          loading={loadingSchedules}
+          search={search}
+          setSearch={setSearch}
+          onOpenCreateModal={() => {
+            resetScheduleForm()
+            setShowScheduleModal(true)
+          }}
+          onEditSchedule={startEditSchedule}
+          onDeleteSchedule={handleDeleteSchedule}
+        />
+      )}
+
       {/* MODAL: ADD / EDIT BUS */}
       <BusModal
         isOpen={showBusModal}
@@ -452,6 +621,20 @@ export default function ManagerDashboard() {
         routeForm={routeForm}
         setRouteForm={setRouteForm}
         onSubmit={handleRouteSubmit}
+      />
+
+      {/* MODAL: CREATE / EDIT BUS SCHEDULE */}
+      <ScheduleModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        editingSchedule={editingSchedule}
+        scheduleForm={scheduleForm}
+        setScheduleForm={setScheduleForm}
+        buses={buses}
+        routes={routes}
+        drivers={drivers}
+        submitting={submittingSchedule}
+        onSubmit={handleScheduleSubmit}
       />
     </DashboardShell>
   )

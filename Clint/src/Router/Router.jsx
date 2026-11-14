@@ -47,6 +47,14 @@ const routes = createBrowserRouter([
     ),
   },
   {
+    path: 'manager/:tab',
+    element: (
+      <ProtectedRoute allowedRoles={['transportation-manager', 'admin']}>
+        <ManagerDashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: 'driver',
     element: (
       <ProtectedRoute allowedRoles={['driver', 'admin']}>
