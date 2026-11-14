@@ -406,7 +406,10 @@ export default function ManagerDashboard() {
 
       {/* TAB 4: ROUTE STOP ASSOCIATE */}
       {activeTab === 'route-stop-associate' && (
-        <ManagerRouteStopAssociateTab routes={routes} />
+        <ManagerRouteStopAssociateTab
+          routes={routes}
+          onRefreshRoutes={fetchRoutes}
+        />
       )}
 
       {/* MODAL: ADD / EDIT BUS */}

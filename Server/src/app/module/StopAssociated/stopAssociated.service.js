@@ -1,0 +1,129 @@
+import AppError from '../../errorHelpers/appError.js';
+import { RouteModel, Bus } from '../../../schema/index.js';
+
+const getAllRoutesWithStopsFromDB = async () => {
+  const routes = await RouteModel.find().populate('createdBy', 'name email role').sort({ createdAt: -1 });
+
+  return routes.map((route) => {
+    const stopsList = Array.isArray(route.stops) ? route.stops : [];
+    return {
+      ...route.toObject(),
+      initialDestination: route.startPoint,
+      lastDestination: route.endPoint,
+      totalStopsCount: stopsList.length,
+      fullJourneySequence: [route.startPoint, ...stopsList, route.endPoint],
+    };
+  });
+};
+
+const getRouteStopsByIdFromDB = async (routeId) => {
+  const route = await RouteModel.findById(routeId).populate('createdBy', 'name email role');
+  if (!route) {
+    throw new AppError(404, 'Route not found');
+  }
+  const assignedBuses = await Bus.find({ assignedRoute: routeId }).select('busNumber name licensePlate capacity status');
+
+  const stopsList = Array.isArray(route.stops) ? route.stops : [];
+  return {
+    ...route.toObject(),
+    initialDestination: route.startPoint,
+    lastDestination: route.endPoint,
+    totalStopsCount: stopsList.length,
+    fullJourneySequence: [route.startPoint, ...stopsList, route.endPoint],
+    assignedBuses,
+  };
+};
+
+const addStopToRouteInDB = async (routeId, stopName) => {
+  const route = await RouteModel.findById(routeId);
+  if (!route) {
+    throw new AppError(404, 'Route not found');
+  }
+
+  const cleanStop = stopName.trim();
+  const currentStops = Array.isArray(route.stops) ? [...route.stops] : [];
+
+  if (currentStops.some((s) => s.toLowerCase() === cleanStop.toLowerCase())) {
+    throw new AppError(400, `Stop "${cleanStop}" is already associated with this route`);
+  }
+
+  currentStops.push(cleanStop);
+  route.stops = currentStops;
+  await route.save();
+  return route;
+};
+
+const updateStopInRouteInDB = async (routeId, oldStopName, newStopName) => {
+  const route = await RouteModel.findById(routeId);
+  if (!route) {
+    throw new AppError(404, 'Route not found');
+  }
+
+  const cleanOld = oldStopName.trim();
+  const cleanNew = newStopName.trim();
+  const currentStops = Array.isArray(route.stops) ? [...route.stops] : [];
+
+  const index = currentStops.findIndex((s) => s.toLowerCase() === cleanOld.toLowerCase());
+  if (index === -1) {
+    throw new AppError(404, `Stop "${cleanOld}" not found on this route`);
+  }
+
+  currentStops[index] = cleanNew;
+  route.stops = currentStops;
+  await route.save();
+  return route;
+};
+
+const removeStopFromRouteInDB = async (routeId, stopName) => {
+  const route = await RouteModel.findById(routeId);
+  if (!route) {
+    throw new AppError(404, 'Route not found');
+  }
+
+  const cleanStop = stopName.trim();
+  const currentStops = Array.isArray(route.stops) ? [...route.stops] : [];
+
+  const updatedStops = currentStops.filter((s) => s.toLowerCase() !== cleanStop.toLowerCase());
+  if (updatedStops.length === currentStops.length) {
+    throw new AppError(404, `Stop "${cleanStop}" was not present in this route`);
+  }
+
+  route.stops = updatedStops;
+  await route.save();
+  return route;
+};
+
+const updateAllStopsInRouteInDB = async (routeId, stopsArray) => {
+  const route = await RouteModel.findById(routeId);
+  if (!route) {
+    throw new AppError(404, 'Route not found');
+  }
+
+  route.stops = stopsArray.map((s) => s.trim()).filter(Boolean);
+  await route.save();
+  return route;
+};
+
+const updateRouteEndpointsInDB = async (routeId, startPoint, endPoint) => {
+  const route = await RouteModel.findById(routeId);
+  if (!route) {
+    throw new AppError(404, 'Route not found');
+  }
+
+  route.startPoint = startPoint.trim();
+  route.endPoint = endPoint.trim();
+  await route.save();
+  return route;
+};
+
+export const StopAssociatedService = {
+  getAllRoutesWithStopsFromDB,
+  getRouteStopsByIdFromDB,
+  addStopToRouteInDB,
+  updateStopInRouteInDB,
+  removeStopFromRouteInDB,
+  updateAllStopsInRouteInDB,
+  updateRouteEndpointsInDB,
+};
+
+export default StopAssociatedService;
