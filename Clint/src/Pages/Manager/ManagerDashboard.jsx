@@ -199,7 +199,7 @@ export default function ManagerDashboard() {
     if (!assignDriverModal) return
     try {
       const busId = assignDriverModal._id || assignDriverModal.id
-      await apiClient.patch(`/api/v1/transportation-managers/buses/${busId}/assign-driver`, {
+      await apiClient.patch(`/api/v1/buses/${busId}/assign-driver`, {
         driverId: selectedDriverId || null,
       })
       toast.success('Driver assignment updated!')
@@ -215,7 +215,7 @@ export default function ManagerDashboard() {
     if (!assignRouteModal) return
     try {
       const busId = assignRouteModal._id || assignRouteModal.id
-      await apiClient.patch(`/api/v1/transportation-managers/buses/${busId}/assign-route`, {
+      await apiClient.patch(`/api/v1/buses/${busId}/assign-route`, {
         routeId: selectedRouteId || null,
       })
       toast.success('Route assignment updated!')
