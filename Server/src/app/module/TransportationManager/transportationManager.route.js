@@ -56,7 +56,7 @@ router.patch(
   TransportationManagerController.makeUserDriver
 );
 
-// Protected Assign/Unassign Driver to Bus
+// Protected Bus Assignment Aliases (Assign Driver / Assign Route)
 router.patch(
   '/buses/:id/assign-driver',
   checkAuth('transportation-manager', 'admin'),
@@ -64,7 +64,6 @@ router.patch(
   BusController.assignDriver
 );
 
-// Protected Assign/Unassign Route to Bus
 router.patch(
   '/buses/:id/assign-route',
   checkAuth('transportation-manager', 'admin'),

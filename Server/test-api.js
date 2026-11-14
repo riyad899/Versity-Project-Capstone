@@ -566,10 +566,113 @@ async function runTests() {
     logTest('Security Guard: Passenger Blocked from Adding Bus (Expected 403)', ok, `Status: ${res.status}`);
   }
 
+  // 31. Stop Associated - Add Stop to Route POST /api/v1/stop-associated/:routeId/stops
+  if (createdRouteId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request(`/api/v1/stop-associated/${createdRouteId}/stops`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ stopName: 'Science Complex' }),
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && res.data?.data?.stops?.includes('Science Complex');
+    logTest('Stop Associated: Add Stop POST /api/v1/stop-associated/:routeId/stops', ok, `Status: ${res.status}`);
+  }
+
+  // 32. Stop Associated - Add Second Stop to Route
+  if (createdRouteId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request(`/api/v1/stop-associated/${createdRouteId}/stops`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ stopName: 'Central Library' }),
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && res.data?.data?.stops?.includes('Central Library');
+    logTest('Stop Associated: Add Second Stop POST /api/v1/stop-associated/:routeId/stops', ok, `Status: ${res.status}`);
+  }
+
+  // 33. Stop Associated - Rename Stop PATCH /api/v1/stop-associated/:routeId/stops
+  if (createdRouteId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request(`/api/v1/stop-associated/${createdRouteId}/stops`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ oldStopName: 'Science Complex', newStopName: 'Science Faculty Hub' }),
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && res.data?.data?.stops?.includes('Science Faculty Hub');
+    logTest('Stop Associated: Rename Stop PATCH /api/v1/stop-associated/:routeId/stops', ok, `Status: ${res.status}`);
+  }
+
+  // 34. Stop Associated - Batch Reorder Stops PUT /api/v1/stop-associated/:routeId/stops
+  if (createdRouteId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request(`/api/v1/stop-associated/${createdRouteId}/stops`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ stops: ['Central Library', 'Science Faculty Hub'] }),
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && res.data?.data?.stops?.[0] === 'Central Library';
+    logTest('Stop Associated: Batch Reorder Stops PUT /api/v1/stop-associated/:routeId/stops', ok, `Status: ${res.status}`);
+  }
+
+  // 35. Stop Associated - Update Terminals PATCH /api/v1/stop-associated/:routeId/endpoints
+  if (createdRouteId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request(`/api/v1/stop-associated/${createdRouteId}/endpoints`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ startPoint: 'North Gate Terminal', endPoint: 'South Metro Station' }),
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && res.data?.data?.startPoint === 'North Gate Terminal';
+    logTest('Stop Associated: Update Terminals PATCH /api/v1/stop-associated/:routeId/endpoints', ok, `Status: ${res.status}`);
+  }
+
+  // 36. Stop Associated - Get Route Details GET /api/v1/stop-associated/:routeId
+  if (createdRouteId) {
+    const headers = {};
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+    const res = await request(`/api/v1/stop-associated/${createdRouteId}`, {
+      method: 'GET',
+      headers,
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && res.data?.data?.fullJourneySequence?.length >= 3;
+    logTest('Stop Associated: Get Route Details GET /api/v1/stop-associated/:routeId', ok, `Status: ${res.status}`);
+  }
+
+  // 37. Stop Associated - Remove Stop DELETE /api/v1/stop-associated/:routeId/stops/:stopName
+  if (createdRouteId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request(`/api/v1/stop-associated/${createdRouteId}/stops/Central Library`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && !res.data?.data?.stops?.includes('Central Library');
+    logTest('Stop Associated: Remove Stop DELETE /api/v1/stop-associated/:routeId/stops/:stopName', ok, `Status: ${res.status}`);
+  }
+
   // --- BUS SCHEDULE MODULE TESTS (Transportation Manager) ---
   let createdScheduleId = '';
 
-  // 31. Transportation Manager Create Bus Schedule
+  // 38. Transportation Manager Create Bus Schedule
   if (createdBusId && createdRouteId) {
     const headers = {};
     if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
@@ -594,7 +697,7 @@ async function runTests() {
     logTest('Transportation Manager Create Bus Schedule POST /api/v1/schedules', ok, `Status: ${res.status}`);
   }
 
-  // 32. Get All Bus Schedules (Accessible by Passenger & Manager)
+  // 39. Get All Bus Schedules (Accessible by Passenger & Manager)
   {
     const headers = {};
     if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
@@ -608,7 +711,7 @@ async function runTests() {
     logTest('Get All Bus Schedules GET /api/v1/schedules', ok, `Status: ${res.status}`);
   }
 
-  // 33. Transportation Manager Update Bus Schedule
+  // 40. Transportation Manager Update Bus Schedule
   if (createdScheduleId) {
     const headers = {};
     if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
@@ -628,7 +731,7 @@ async function runTests() {
     logTest('Transportation Manager Update Bus Schedule PATCH /api/v1/schedules/:id', ok, `Status: ${res.status}`);
   }
 
-  // 34. Security Guard: Passenger Blocked from Creating Schedule (Expected 403)
+  // 41. Security Guard: Passenger Blocked from Creating Schedule (Expected 403)
   {
     const headers = {};
     if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
@@ -648,7 +751,7 @@ async function runTests() {
     logTest('Security Guard: Passenger Blocked from Creating Schedule (Expected 403)', ok, `Status: ${res.status}`);
   }
 
-  // 35. 404 Route Not Found
+  // 42. 404 Route Not Found
   {
     const res = await request('/api/v1/invalid-route-testing-404');
     const ok = res.status === 404 && res.data?.success === false;
