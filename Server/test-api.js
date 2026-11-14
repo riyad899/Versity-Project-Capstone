@@ -669,7 +669,89 @@ async function runTests() {
     logTest('Stop Associated: Remove Stop DELETE /api/v1/stop-associated/:routeId/stops/:stopName', ok, `Status: ${res.status}`);
   }
 
-  // 38. 404 Route Not Found
+  // --- BUS SCHEDULE MODULE TESTS (Transportation Manager) ---
+  let createdScheduleId = '';
+
+  // 38. Transportation Manager Create Bus Schedule
+  if (createdBusId && createdRouteId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request('/api/v1/schedules', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        bus: createdBusId,
+        route: createdRouteId,
+        driver: createdDriverId || undefined,
+        departureTime: '08:30 AM',
+        arrivalTime: '09:15 AM',
+        operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        status: 'active',
+        remarks: 'Morning peak express shuttle',
+      }),
+    });
+
+    createdScheduleId = res.data?.data?._id || res.data?.data?.id;
+    const ok = res.status === 201 && res.data?.success === true && res.data?.data?.departureTime === '08:30 AM';
+    logTest('Transportation Manager Create Bus Schedule POST /api/v1/schedules', ok, `Status: ${res.status}`);
+  }
+
+  // 39. Get All Bus Schedules (Accessible by Passenger & Manager)
+  {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request('/api/v1/schedules', {
+      method: 'GET',
+      headers,
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && Array.isArray(res.data?.data);
+    logTest('Get All Bus Schedules GET /api/v1/schedules', ok, `Status: ${res.status}`);
+  }
+
+  // 40. Transportation Manager Update Bus Schedule
+  if (createdScheduleId) {
+    const headers = {};
+    if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
+
+    const res = await request(`/api/v1/schedules/${createdScheduleId}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        departureTime: '08:45 AM',
+        arrivalTime: '09:30 AM',
+        status: 'delayed',
+        remarks: 'Delayed due to campus traffic',
+      }),
+    });
+
+    const ok = res.status === 200 && res.data?.success === true && res.data?.data?.status === 'delayed';
+    logTest('Transportation Manager Update Bus Schedule PATCH /api/v1/schedules/:id', ok, `Status: ${res.status}`);
+  }
+
+  // 41. Security Guard: Passenger Blocked from Creating Schedule (Expected 403)
+  {
+    const headers = {};
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+    const res = await request('/api/v1/schedules', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        bus: createdBusId || '660c00000000000000000000',
+        route: createdRouteId || '660c00000000000000000000',
+        departureTime: '10:00 AM',
+        arrivalTime: '11:00 AM',
+      }),
+    });
+
+    const ok = res.status === 403;
+    logTest('Security Guard: Passenger Blocked from Creating Schedule (Expected 403)', ok, `Status: ${res.status}`);
+  }
+
+  // 42. 404 Route Not Found
   {
     const res = await request('/api/v1/invalid-route-testing-404');
     const ok = res.status === 404 && res.data?.success === false;
