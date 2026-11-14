@@ -182,11 +182,22 @@ export default function ManagerDashboard() {
     navigate(`/manager/${newTab}`)
   }
 
-  const handleMakeDriver = async (userId) => {
+  const handleMakeDriver = async (userOrId) => {
+    const userId =
+      typeof userOrId === 'object' && userOrId !== null
+        ? userOrId._id || userOrId.id
+        : userOrId
+
+    if (!userId) {
+      toast.error('Invalid user selected')
+      return
+    }
+
     try {
       await apiClient.patch(`/api/v1/transportation-managers/users/${userId}/make-driver`)
-      toast.success('User converted to Driver successfully!')
+      toast.success('User promoted to Driver successfully!')
       fetchUsers()
+      fetchDrivers()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to convert user')
     }
@@ -597,6 +608,7 @@ export default function ManagerDashboard() {
         onClose={() => setAssignDriverModal(null)}
         bus={assignDriverModal}
         drivers={drivers}
+        buses={buses}
         selectedDriverId={selectedDriverId}
         setSelectedDriverId={setSelectedDriverId}
         onSubmit={handleAssignDriver}

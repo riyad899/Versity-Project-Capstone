@@ -85,7 +85,7 @@ export default function ManagerUsersTab({ users, loading, search, setSearch, onM
                           variant="outline"
                           size="sm"
                           className="text-xs font-bold text-emerald-700 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 hover:text-emerald-800"
-                          onClick={() => onMakeDriver(u)}
+                          onClick={() => onMakeDriver(uid)}
                         >
                           <UserPlus className="h-3.5 w-3.5 mr-1" /> Make Driver
                         </Button>
