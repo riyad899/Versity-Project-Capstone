@@ -41,18 +41,32 @@ export default function AssignRouteModal({
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700">Select Transit Route</label>
+            <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>Select Transit Route</span>
+              {bus.assignedRoute && (
+                <span className="text-[11px] text-blue-600 font-semibold">
+                  Current: {bus.assignedRoute.routeName || 'Assigned'}
+                </span>
+              )}
+            </label>
             <select
               value={selectedRouteId}
               onChange={(e) => setSelectedRouteId(e.target.value)}
               className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
             >
               <option value="">-- No Route (Unassign) --</option>
-              {routes.map((r) => (
-                <option key={r._id || r.id} value={r._id || r.id}>
-                  {r.routeName} ({r.startPoint} ➔ {r.endPoint})
-                </option>
-              ))}
+              {routes.map((r) => {
+                const rid = r._id || r.id
+                const isCurrent =
+                  bus.assignedRoute &&
+                  String(bus.assignedRoute._id || bus.assignedRoute.id || bus.assignedRoute) === String(rid)
+                return (
+                  <option key={rid} value={rid}>
+                    {r.routeName} ({r.startPoint} ➔ {r.endPoint})
+                    {isCurrent ? ' — [Current Route]' : ''}
+                  </option>
+                )
+              })}
             </select>
           </div>
 

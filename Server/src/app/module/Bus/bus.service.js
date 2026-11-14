@@ -15,6 +15,16 @@ const createBusIntoDB = async (payload, createdBy) => {
     if (!driver || driver.role !== 'driver') {
       throw new AppError(400, 'Assigned user must be an active registered driver!');
     }
+
+    const alreadyAssigned = await Bus.findOne({
+      assignedDriver: payload.assignedDriver,
+    });
+    if (alreadyAssigned) {
+      throw new AppError(
+        400,
+        `Driver "${driver.name}" is already assigned to bus "${alreadyAssigned.name}" (#${alreadyAssigned.busNumber})!`
+      );
+    }
   }
 
   if (payload.assignedRoute) {
@@ -75,6 +85,16 @@ const updateBusIntoDB = async (id, payload) => {
     if (!driver || driver.role !== 'driver') {
       throw new AppError(400, 'Assigned user must be an active registered driver!');
     }
+
+    const alreadyAssigned = await Bus.findOne({
+      assignedDriver: payload.assignedDriver,
+    });
+    if (alreadyAssigned) {
+      throw new AppError(
+        400,
+        `Driver "${driver.name}" is already assigned to bus "${alreadyAssigned.name}" (#${alreadyAssigned.busNumber})!`
+      );
+    }
   }
 
   if (payload.assignedRoute) {
@@ -103,6 +123,22 @@ const assignDriverToBus = async (busId, driverId) => {
     const driver = await User.findById(driverId);
     if (!driver || driver.role !== 'driver') {
       throw new AppError(400, 'User must be a registered driver!');
+    }
+
+    // Check if driver is already assigned to another bus
+    const alreadyAssigned = await Bus.findOne({
+      assignedDriver: driverId,
+      _id: { $ne: busId },
+    }).populate('assignedRoute', 'routeName startPoint endPoint');
+
+    if (alreadyAssigned) {
+      const routeInfo = alreadyAssigned.assignedRoute?.routeName
+        ? ` on route "${alreadyAssigned.assignedRoute.routeName}"`
+        : '';
+      throw new AppError(
+        400,
+        `Driver "${driver.name}" is already assigned to bus "${alreadyAssigned.name}" (#${alreadyAssigned.busNumber})${routeInfo}! Please unassign first.`
+      );
     }
   }
 

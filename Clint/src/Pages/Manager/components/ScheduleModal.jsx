@@ -483,11 +483,27 @@ export default function ScheduleModal({
               className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
             >
               <option value="">Default to Bus Assigned Driver (if any)</option>
-              {drivers.map((d) => (
-                <option key={d._id || d.id} value={d._id || d.id}>
-                  {d.name} ({d.email})
-                </option>
-              ))}
+              {drivers.map((d) => {
+                const did = d._id || d.id
+                const otherBus = buses.find((b) => {
+                  const assignedId = b.assignedDriver?._id || b.assignedDriver?.id || b.assignedDriver
+                  return assignedId && String(assignedId) === String(did)
+                })
+                const isSelectedBus =
+                  otherBus && scheduleForm.bus && String(otherBus._id || otherBus.id) === String(scheduleForm.bus)
+
+                let label = `${d.name} (${d.email})`
+                if (isSelectedBus) {
+                  label += ' — [Current Bus Assigned Driver]'
+                } else if (otherBus) {
+                  label += ` — ⚠️ [Already Assigned to #${otherBus.busNumber} ${otherBus.name}]`
+                }
+                return (
+                  <option key={did} value={did}>
+                    {label}
+                  </option>
+                )
+              })}
             </select>
           </div>
 
