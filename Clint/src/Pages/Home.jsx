@@ -271,24 +271,30 @@ function Home() {
             className="grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_auto_1fr_1fr_auto]"
           >
             {/* FROM */}
-            <div className={fieldBase}>
+            <div className={`relative ${fieldBase} cursor-pointer`}>
               <MapPin className="h-5 w-5 shrink-0 text-slate-500" />
               <div className="min-w-0 flex-1">
                 <div className="text-[12px] font-bold leading-none text-slate-900">From</div>
-                <select
-                  value={fromLocation}
-                  onChange={(e) => setFromLocation(e.target.value)}
-                  className="mt-1 w-full cursor-pointer truncate bg-transparent text-sm text-slate-500 outline-none"
-                >
-                  <option value="">Select departure location</option>
-                  {availableLocations.map((loc) => (
-                    <option key={`from-${loc}`} value={loc}>
-                      {loc}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-1 truncate text-sm text-slate-600">
+                  {fromLocation || (
+                    <span className="text-slate-400">Select departure location</span>
+                  )}
+                </div>
               </div>
               <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
+              <select
+                value={fromLocation}
+                onChange={(e) => setFromLocation(e.target.value)}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                aria-label="Select departure location"
+              >
+                <option value="">Select departure location</option>
+                {availableLocations.map((loc) => (
+                  <option key={`from-${loc}`} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* SWAP */}
@@ -305,24 +311,30 @@ function Home() {
             </div>
 
             {/* TO */}
-            <div className={fieldBase}>
+            <div className={`relative ${fieldBase} cursor-pointer`}>
               <MapPin className="h-5 w-5 shrink-0 text-slate-500" />
               <div className="min-w-0 flex-1">
                 <div className="text-[12px] font-bold leading-none text-slate-900">To</div>
-                <select
-                  value={toLocation}
-                  onChange={(e) => setToLocation(e.target.value)}
-                  className="mt-1 w-full cursor-pointer truncate bg-transparent text-sm text-slate-500 outline-none"
-                >
-                  <option value="">Select destination</option>
-                  {availableLocations.map((loc) => (
-                    <option key={`to-${loc}`} value={loc}>
-                      {loc}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-1 truncate text-sm text-slate-600">
+                  {toLocation || (
+                    <span className="text-slate-400">Select destination</span>
+                  )}
+                </div>
               </div>
               <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
+              <select
+                value={toLocation}
+                onChange={(e) => setToLocation(e.target.value)}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                aria-label="Select destination"
+              >
+                <option value="">Select destination</option>
+                {availableLocations.map((loc) => (
+                  <option key={`to-${loc}`} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* DATE */}

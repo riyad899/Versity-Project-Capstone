@@ -8,6 +8,7 @@
     "build": "find . -path './node_modules' -prune -o -name '*.js' -print0 | xargs -0 -n1 node --check",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "routes:clear": "node scripts/deleteRoutes.js",
     "test": "node test-api.js"
   },
   "keywords": [
