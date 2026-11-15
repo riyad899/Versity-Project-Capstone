@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react'
-import { MapPin, Route as RouteIcon, Bus as BusIcon, Clock, ArrowRight, Search, Navigation } from 'lucide-react'
+import { useMemo } from 'react'
+import { MapPin, Route as RouteIcon, Bus as BusIcon, Clock, ArrowRight, Navigation } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card'
 import { Badge } from '@/Components/ui/badge'
-import { Input } from '@/Components/ui/input'
 
-export default function PassengerStopsTab({ routes = [], buses = [] }) {
-  const [stopSearch, setStopSearch] = useState('')
-
+export default function PassengerStopsTab({
+  routes = [],
+  buses = [],
+  search = '',
+  stopFilter = 'all',
+}) {
   // Aggregate all unique stops and their associated routes and buses
   const stopsData = useMemo(() => {
     const map = new Map()
@@ -29,14 +31,15 @@ export default function PassengerStopsTab({ routes = [], buses = [] }) {
 
       allRouteStops.forEach((stop) => {
         const key = stop.name.trim()
-        if (!map.has(key)) {
-          map.set(key, {
+        const lowerKey = key.toLowerCase()
+        if (!map.has(lowerKey)) {
+          map.set(lowerKey, {
             stopName: key,
             routes: [],
             buses: [],
           })
         }
-        const item = map.get(key)
+        const item = map.get(lowerKey)
         // Add route if not already present
         if (!item.routes.some((r) => (r._id || r.id) === (route._id || route.id))) {
           item.routes.push({
@@ -56,32 +59,47 @@ export default function PassengerStopsTab({ routes = [], buses = [] }) {
     return Array.from(map.values()).sort((a, b) => a.stopName.localeCompare(b.stopName))
   }, [routes, buses])
 
+  // Filter stops by both the dropdown filter and the top search input (case-insensitive)
   const filteredStops = useMemo(() => {
-    if (!stopSearch) return stopsData
-    const q = stopSearch.toLowerCase()
-    return stopsData.filter(
-      (s) =>
+    const cleanFilter = stopFilter ? stopFilter.toLowerCase().trim() : 'all'
+    const q = search ? search.toLowerCase().trim() : ''
+
+    return stopsData.filter((s) => {
+      const matchesDropdown =
+        cleanFilter === 'all' || s.stopName.toLowerCase().trim() === cleanFilter
+
+      const matchesSearch =
+        !q ||
         s.stopName.toLowerCase().includes(q) ||
         s.routes.some((r) => r.routeName?.toLowerCase().includes(q))
-    )
-  }, [stopsData, stopSearch])
+
+      return matchesDropdown && matchesSearch
+    })
+  }, [stopsData, stopFilter, search])
 
   return (
     <div className="space-y-6">
-      {/* Top Search for Stops */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            type="text"
-            placeholder="Search bus stops across campus (e.g. Library, Science Complex, Dorms)..."
-            value={stopSearch}
-            onChange={(e) => setStopSearch(e.target.value)}
-            className="pl-10 bg-white"
-          />
+      {/* Sub-header showing count and active filter context */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-purple-600" />
+            {stopFilter !== 'all' ? (
+              <span>
+                Filtered Stop: <span className="text-blue-600 capitalize">{stopFilter}</span>
+              </span>
+            ) : (
+              'All Campus Bus Stops'
+            )}
+          </h3>
+          <p className="text-xs text-slate-500">
+            {stopFilter !== 'all'
+              ? 'Showing routes and buses serving the selected stop.'
+              : 'Browse all university shuttle pickup and drop-off locations.'}
+          </p>
         </div>
-        <Badge variant="outline" className="self-start sm:self-auto px-3 py-1.5 font-mono text-xs">
-          {filteredStops.length} Campus Stop{filteredStops.length === 1 ? '' : 's'}
+        <Badge variant="outline" className="px-3 py-1 font-mono text-xs">
+          {filteredStops.length} Stop{filteredStops.length === 1 ? '' : 's'} Listed
         </Badge>
       </div>
 
@@ -90,7 +108,9 @@ export default function PassengerStopsTab({ routes = [], buses = [] }) {
           <MapPin className="h-10 w-10 text-slate-300 mb-2" />
           <h3 className="text-base font-bold text-slate-900">No bus stops found</h3>
           <p className="mt-1 text-sm text-slate-500">
-            {stopSearch ? 'Try a different stop name query.' : 'No routes have been registered with stops yet.'}
+            {search || stopFilter !== 'all'
+              ? 'No stops match your current search or filter. Try clearing the filter.'
+              : 'No campus routes have been registered with stops yet.'}
           </p>
         </div>
       ) : (
@@ -106,7 +126,7 @@ export default function PassengerStopsTab({ routes = [], buses = [] }) {
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                       <MapPin className="h-4 w-4" />
                     </div>
-                    <CardTitle className="text-base font-bold text-slate-950 truncate">
+                    <CardTitle className="text-base font-bold text-slate-950 truncate capitalize">
                       {stopItem.stopName}
                     </CardTitle>
                   </div>

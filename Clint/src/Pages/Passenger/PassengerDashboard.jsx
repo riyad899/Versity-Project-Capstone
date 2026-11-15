@@ -54,10 +54,18 @@ export default function PassengerDashboard() {
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [routes])
 
+  // Case-insensitive stop matching helper
+  const cleanFilter = stopFilter ? stopFilter.toLowerCase().trim() : 'all'
+  const isStopMatch = (target) => {
+    if (cleanFilter === 'all') return true
+    if (!target) return false
+    return target.toLowerCase().trim() === cleanFilter
+  }
+
   // Filter buses by search, status, and stop
   const filteredBuses = useMemo(() => {
     return buses.filter((bus) => {
-      const q = search.toLowerCase()
+      const q = search.toLowerCase().trim()
       const matchesSearch =
         search === '' ||
         bus.busNumber?.toLowerCase().includes(q) ||
@@ -72,19 +80,20 @@ export default function PassengerDashboard() {
       const matchesStatus = statusFilter === 'all' || bus.status === statusFilter
 
       const matchesStop =
-        stopFilter === 'all' ||
-        bus.assignedRoute?.startPoint === stopFilter ||
-        bus.assignedRoute?.endPoint === stopFilter ||
-        (bus.assignedRoute?.stops && bus.assignedRoute.stops.includes(stopFilter))
+        cleanFilter === 'all' ||
+        isStopMatch(bus.assignedRoute?.startPoint) ||
+        isStopMatch(bus.assignedRoute?.endPoint) ||
+        (bus.assignedRoute?.stops &&
+          bus.assignedRoute.stops.some((s) => isStopMatch(s)))
 
       return matchesSearch && matchesStatus && matchesStop
     })
-  }, [buses, search, statusFilter, stopFilter])
+  }, [buses, search, statusFilter, cleanFilter])
 
   // Filter routes by search and stop
   const filteredRoutes = useMemo(() => {
     return routes.filter((route) => {
-      const q = search.toLowerCase()
+      const q = search.toLowerCase().trim()
       const matchesSearch =
         !search ||
         route.routeName?.toLowerCase().includes(q) ||
@@ -94,14 +103,27 @@ export default function PassengerDashboard() {
         (route.scheduleTimes && route.scheduleTimes.some((t) => t.toLowerCase().includes(q)))
 
       const matchesStop =
-        stopFilter === 'all' ||
-        route.startPoint === stopFilter ||
-        route.endPoint === stopFilter ||
-        (route.stops && route.stops.includes(stopFilter))
+        cleanFilter === 'all' ||
+        isStopMatch(route.startPoint) ||
+        isStopMatch(route.endPoint) ||
+        (route.stops && route.stops.some((s) => isStopMatch(s)))
 
       return matchesSearch && matchesStop
     })
-  }, [routes, search, stopFilter])
+  }, [routes, search, cleanFilter])
+
+  // Calculate filtered stops count for sidebar badge
+  const filteredStopsCount = useMemo(() => {
+    if (cleanFilter !== 'all') {
+      const hasMatch = allUniqueStops.some((s) => s.toLowerCase().trim() === cleanFilter)
+      return hasMatch ? 1 : 0
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase().trim()
+      return allUniqueStops.filter((s) => s.toLowerCase().includes(q)).length
+    }
+    return allUniqueStops.length
+  }, [allUniqueStops, cleanFilter, search])
 
   const activeBusesCount = useMemo(() => {
     return buses.filter((b) => b.status === 'active').length
@@ -131,7 +153,7 @@ export default function PassengerDashboard() {
           id: 'stops',
           label: 'Bus Stops',
           icon: MapPin,
-          badge: allUniqueStops.length,
+          badge: filteredStopsCount,
         },
       ]}
       activeTab={activeTab}
@@ -249,7 +271,12 @@ export default function PassengerDashboard() {
         ) : activeTab === 'buses' ? (
           <PassengerBusesTab buses={filteredBuses} />
         ) : (
-          <PassengerStopsTab routes={routes} buses={buses} />
+          <PassengerStopsTab
+            routes={routes}
+            buses={buses}
+            search={search}
+            stopFilter={stopFilter}
+          />
         )}
       </div>
     </DashboardShell>
