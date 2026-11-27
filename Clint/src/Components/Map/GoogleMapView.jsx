@@ -19,6 +19,7 @@ export default function GoogleMapView({
   const [mapEngine, setMapEngine] = useState('leaflet') // default to 'leaflet' for guaranteed rendering
   const [googleAuthFailed, setGoogleAuthFailed] = useState(false)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
+  const [leafletReady, setLeafletReady] = useState(false)
   const [googleLoaded, setGoogleLoaded] = useState(false)
 
   // Leaflet refs
@@ -138,6 +139,7 @@ export default function GoogleMapView({
       }).addTo(map)
 
       leafletMapRef.current = map
+      setLeafletReady(true)
 
       map.on('click', (e) => {
         if (onLocationPickRef.current) {
@@ -160,7 +162,7 @@ export default function GoogleMapView({
 
   // Update Leaflet Bus Marker, Movement Trail & Route
   useEffect(() => {
-    if (mapEngine !== 'leaflet' || !leafletMapRef.current || !window.L) return
+    if (mapEngine !== 'leaflet' || !leafletReady || !leafletMapRef.current || !window.L) return
     const map = leafletMapRef.current
 
     let resolvedHeading = Number(busLocation?.heading) || 0
