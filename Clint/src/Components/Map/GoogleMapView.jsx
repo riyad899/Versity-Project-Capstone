@@ -13,6 +13,8 @@ export default function GoogleMapView({
   busInfo, // { busNumber, name, licensePlate }
   routeInfo, // { routeName, startPoint, endPoint, stops }
   locationHistory = [], // optional array of past waypoints for movement trail
+  trafficSegments = [], // [{ level: 'clear'|'moderate'|'heavy', coords: [[lat, lng], ...] }]
+  selectedAlternative = null, // { name, geometry: [[lat, lng], ...], timeSavedMinutes }
   height = '440px',
   onLocationPick = null,
 }) {
@@ -29,6 +31,8 @@ export default function GoogleMapView({
   const leafletStopMarkersRef = useRef([])
   const leafletPolylineRef = useRef(null)
   const leafletTrailRef = useRef(null)
+  const leafletTrafficLayersRef = useRef([])
+  const leafletAltLayerRef = useRef(null)
   const leafletAnimIdRef = useRef(null)
   const prevCoordsRef = useRef(null)
   const onLocationPickRef = useRef(onLocationPick)
@@ -307,6 +311,13 @@ export default function GoogleMapView({
     leafletStopMarkersRef.current = []
     if (leafletPolylineRef.current) {
       map.removeLayer(leafletPolylineRef.current)
+      leafletPolylineRef.current = null
+    }
+    leafletTrafficLayersRef.current.forEach((l) => map.removeLayer(l))
+    leafletTrafficLayersRef.current = []
+    if (leafletAltLayerRef.current) {
+      map.removeLayer(leafletAltLayerRef.current)
+      leafletAltLayerRef.current = null
     }
 
     // Build stopsList using exact saved coordinates if available, otherwise fallback to offsets
@@ -389,7 +400,25 @@ export default function GoogleMapView({
       leafletStopMarkersRef.current.push(stopMarker)
     })
 
-    if (pathPoints.length > 1) {
+    if (Array.isArray(trafficSegments) && trafficSegments.length > 0) {
+      const colorMap = {
+        clear: '#10B981', // Green
+        moderate: '#F59E0B', // Amber
+        heavy: '#EF4444', // Red
+      }
+      trafficSegments.forEach((seg) => {
+        if (Array.isArray(seg.coords) && seg.coords.length > 1) {
+          const line = window.L.polyline(seg.coords, {
+            color: colorMap[seg.level] || '#3B82F6',
+            weight: 6,
+            opacity: 0.85,
+          })
+            .addTo(map)
+            .bindPopup(`<strong>Traffic: ${seg.level.toUpperCase()}</strong>`)
+          leafletTrafficLayersRef.current.push(line)
+        }
+      })
+    } else if (pathPoints.length > 1) {
       const polyline = window.L.polyline(pathPoints, {
         color: '#3B82F6',
         weight: 4,
@@ -398,7 +427,33 @@ export default function GoogleMapView({
       }).addTo(map)
       leafletPolylineRef.current = polyline
     }
-  }, [mapEngine, currentLat, currentLng, busInfo, busLocation, routeInfo, locationHistory])
+
+    if (selectedAlternative?.geometry?.length > 1) {
+      const altLine = window.L.polyline(selectedAlternative.geometry, {
+        color: '#06B6D4', // Cyan
+        weight: 5,
+        opacity: 0.95,
+        dashArray: '10, 6',
+      })
+        .addTo(map)
+        .bindPopup(
+          `<strong>Suggested Alternative: ${selectedAlternative.name}</strong><br/>` +
+            `<span style="font-size:11px;color:#0891b2;">${selectedAlternative.reason || ''}</span>`
+        )
+      leafletAltLayerRef.current = altLine
+    }
+  }, [
+    mapEngine,
+    leafletReady,
+    currentLat,
+    currentLng,
+    busInfo,
+    busLocation,
+    routeInfo,
+    locationHistory,
+    trafficSegments,
+    selectedAlternative,
+  ])
 
   useEffect(() => {
     return () => {
@@ -531,6 +586,27 @@ export default function GoogleMapView({
           style={{ height, display: mapEngine === 'google' ? 'block' : 'none' }}
           className="w-full z-0"
         />
+      </div>
+
+      {/* Traffic Legend */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-slate-500">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" /> Clear Traffic
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" /> Moderate
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500 inline-block" /> Heavy Congestion
+          </span>
+          {selectedAlternative && (
+            <span className="inline-flex items-center gap-1 font-semibold text-cyan-700">
+              <span className="h-2.5 w-4 rounded-xs bg-cyan-500 inline-block" /> Alternative Route
+            </span>
+          )}
+        </div>
+        <span>Live OSRM &amp; GPS Telemetry</span>
       </div>
     </div>
   )

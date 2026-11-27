@@ -6,6 +6,7 @@ import DriverRoutes from '../module/Driver/driver.route.js';
 import RouteRoutes from '../module/Route/route.route.js';
 import ScheduleRoutes from '../module/Schedule/schedule.route.js';
 import StopAssociatedRoutes from '../module/StopAssociated/stopAssociated.route.js';
+import TrafficRoutes from '../module/Traffic/traffic.route.js';
 import TransportationManagerRoutes from '../module/TransportationManager/transportationManager.route.js';
 import TripRoutes from '../module/Trip/trip.route.js';
 import UserRoutes from '../module/User/user.route.js';
@@ -52,6 +53,10 @@ const moduleRoutes = [
   {
     path: '/trips',
     route: TripRoutes,
+  },
+  {
+    path: '/traffic',
+    route: TrafficRoutes,
   },
 ];
 

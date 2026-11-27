@@ -176,6 +176,8 @@ export default function ActiveBusesMap({
   buses = [],
   selectedBusId = 'all',
   onSelectBus,
+  trafficSegments = [],
+  selectedAlternative = null,
   height = '500px',
 }) {
   const containerRef = useRef(null)
@@ -491,13 +493,41 @@ export default function ActiveBusesMap({
 
         const pathCoords = nodes.map((n) => [n.lat, n.lng])
         if (pathCoords.length > 1) {
-          const routeLine = window.L.polyline(pathCoords, {
-            color: '#3B82F6',
-            weight: selectedBusId !== 'all' ? 4 : 2.5,
-            opacity: selectedBusId !== 'all' ? 0.7 : 0.45,
-            dashArray: '7, 7',
-          }).addTo(map)
-          routeLayersRef.current.push(routeLine)
+          if (Array.isArray(trafficSegments) && trafficSegments.length > 0 && selectedBusId !== 'all') {
+            const colorMap = { clear: '#10B981', moderate: '#F59E0B', heavy: '#EF4444' }
+            trafficSegments.forEach((seg) => {
+              if (Array.isArray(seg.coords) && seg.coords.length > 1) {
+                const tLine = window.L.polyline(seg.coords, {
+                  color: colorMap[seg.level] || '#3B82F6',
+                  weight: 5,
+                  opacity: 0.85,
+                })
+                  .bindPopup(`<strong>Traffic: ${seg.level.toUpperCase()}</strong>`)
+                  .addTo(map)
+                routeLayersRef.current.push(tLine)
+              }
+            })
+          } else {
+            const routeLine = window.L.polyline(pathCoords, {
+              color: '#3B82F6',
+              weight: selectedBusId !== 'all' ? 4 : 2.5,
+              opacity: selectedBusId !== 'all' ? 0.7 : 0.45,
+              dashArray: '7, 7',
+            }).addTo(map)
+            routeLayersRef.current.push(routeLine)
+          }
+        }
+
+        if (selectedAlternative?.geometry?.length > 1 && selectedBusId !== 'all') {
+          const altLine = window.L.polyline(selectedAlternative.geometry, {
+            color: '#06B6D4',
+            weight: 5,
+            opacity: 0.95,
+            dashArray: '10, 6',
+          })
+            .bindPopup(`<strong>Alternative: ${selectedAlternative.name}</strong>`)
+            .addTo(map)
+          routeLayersRef.current.push(altLine)
         }
 
         // Only draw detailed stop badges when focusing a bus or when few routes exist
@@ -560,7 +590,7 @@ export default function ActiveBusesMap({
       hasInitialFitRef.current = true
       handleFitAllBuses()
     }
-  }, [leafletReady, buses, selectedBusId, showTrails, showRoutes, followSelected, animateMarkerTo, handleFitAllBuses])
+  }, [leafletReady, buses, selectedBusId, showTrails, showRoutes, followSelected, animateMarkerTo, handleFitAllBuses, trafficSegments, selectedAlternative])
 
   return (
     <div className="space-y-2.5">

@@ -21,6 +21,7 @@ import { Button } from '@/Components/ui/button'
 import { Badge } from '@/Components/ui/badge'
 import { Input } from '@/Components/ui/input'
 import GoogleMapView from '@/Components/Map/GoogleMapView'
+import TrafficAndAlternativesPanel from '@/Components/Map/TrafficAndAlternativesPanel'
 
 export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange }) {
   const [activeTrip, setActiveTrip] = useState(null)
@@ -32,6 +33,8 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
   const [elapsedTime, setElapsedTime] = useState('00:00:00')
   const [stopRemarks, setStopRemarks] = useState('')
   const [showStopModal, setShowStopModal] = useState(false)
+  const [trafficData, setTrafficData] = useState(null)
+  const [selectedAlternative, setSelectedAlternative] = useState(null)
 
   // Live telemetry state
   const [currentCoords, setCurrentCoords] = useState({
@@ -481,11 +484,24 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
                 busInfo={currentBus}
                 routeInfo={currentRoute}
                 locationHistory={locationHistory}
+                trafficSegments={trafficData?.trafficSegments || []}
+                selectedAlternative={selectedAlternative}
                 height="450px"
                 onLocationPick={activeTrip ? handleMapLocationPick : null}
               />
             </CardContent>
           </Card>
+
+          {/* Traffic Conditions & Alternative Route Suggestions */}
+          {currentRoute?._id && (
+            <TrafficAndAlternativesPanel
+              routeId={currentRoute._id}
+              canReport={true}
+              selectedAlternative={selectedAlternative}
+              onSelectAlternative={setSelectedAlternative}
+              onTrafficDataLoaded={setTrafficData}
+            />
+          )}
         </div>
 
         {/* Right Column: GPS Broadcasting & Telemetry */}
