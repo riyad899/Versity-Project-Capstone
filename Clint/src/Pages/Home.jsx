@@ -18,9 +18,11 @@ import {
   Users,
   Map as MapIcon,
   UserRound,
+  Navigation,
 } from 'lucide-react'
 import { Button } from '@/Components/ui/button'
 import { Badge } from '@/Components/ui/badge'
+import LiveFleetTracker from '@/Components/Map/LiveFleetTracker'
 import heroImage from '@/assets/Sunny Campus Bus Stop Panorama.png'
 
 const SERVICE_IMAGES = { fleet: null, routes: null, drivers: null }
@@ -64,21 +66,28 @@ function Home() {
 
   useEffect(() => {
     const fetchRoutes = async () => {
+      let data = []
       try {
         const res = await apiClient.get('/api/v1/routes')
-        const data = res.data?.data || res.data || []
-        if (Array.isArray(data) && data.length > 0) {
-          setRoutes(data)
-          const locSet = new Set(DEFAULT_LOCATIONS)
-          data.forEach((r) => {
-            if (r.startPoint) locSet.add(r.startPoint)
-            if (r.endPoint) locSet.add(r.endPoint)
-            if (Array.isArray(r.stops)) r.stops.forEach((s) => s && locSet.add(s))
-          })
-          setAvailableLocations(Array.from(locSet))
-        }
+        data = res.data?.data || res.data || []
       } catch {
-        // Fallback to defaults
+        try {
+          const mapRes = await apiClient.get('/api/v1/trips/live-map')
+          data = mapRes.data?.data?.routes || []
+        } catch {
+          // Fallback to defaults
+        }
+      }
+
+      if (Array.isArray(data) && data.length > 0) {
+        setRoutes(data)
+        const locSet = new Set(DEFAULT_LOCATIONS)
+        data.forEach((r) => {
+          if (r.startPoint) locSet.add(r.startPoint)
+          if (r.endPoint) locSet.add(r.endPoint)
+          if (Array.isArray(r.stops)) r.stops.forEach((s) => s && locSet.add(s))
+        })
+        setAvailableLocations(Array.from(locSet))
       }
     }
     fetchRoutes()
@@ -255,6 +264,15 @@ function Home() {
                 <Calendar className="h-4 w-4" />
                 View Bus Schedule
               </Button>
+              <Link to="/live-map">
+                <Button
+                  type="button"
+                  className="h-12 cursor-pointer rounded-lg bg-emerald-600 px-6 text-sm font-bold text-white shadow-md shadow-emerald-600/25 hover:bg-emerald-700"
+                >
+                  <Navigation className="h-4 w-4" />
+                  Live Bus Map
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -528,6 +546,36 @@ function Home() {
             )
           })}
         </div>
+      </section>
+
+      {/* ======================== LIVE CAMPUS BUS MAP ======================== */}
+      <section id="live-bus-map" className="mx-auto max-w-7xl px-4 pb-16 pt-2 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">
+              Real-Time Fleet Tracker
+            </span>
+            <h2 className="mt-1 text-3xl font-black uppercase tracking-tight text-slate-950 sm:text-4xl">
+              Live Active Bus Map
+            </h2>
+          </div>
+          <Link to="/live-map">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 cursor-pointer rounded-lg border-slate-200 bg-white px-4 text-xs font-bold text-slate-900 shadow-2xs hover:bg-slate-50"
+            >
+              Open Full-Screen Tracker
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+
+        <LiveFleetTracker
+          compact
+          title="Live Campus Shuttle Positions & Movement"
+          subtitle="Track active buses moving across campus routes in real time or preview animated shuttle movement."
+        />
       </section>
 
       {/* ======================== SCHEDULE MODAL ======================== */}

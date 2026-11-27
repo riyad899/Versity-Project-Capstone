@@ -6,6 +6,9 @@ import TripValidation from './trip.validation.js';
 
 const router = Router();
 
+// Public sanitized interactive live bus map feed (shows active buses & movement)
+router.get('/live-map', TripController.getLiveBusMapFeed);
+
 // Public / Authenticated Live Trips query (Passenger, Driver, Manager, Admin)
 router.get(
   '/live',

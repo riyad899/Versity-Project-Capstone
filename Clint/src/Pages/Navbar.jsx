@@ -119,6 +119,19 @@ export function Navbar() {
             Home
           </NavLink>
           <NavLink
+            to="/live-map"
+            className={({ isActive }) =>
+              `relative inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:text-blue-600 ${
+                isActive
+                  ? 'text-blue-600 after:absolute after:-bottom-6 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-blue-600'
+                  : 'text-slate-600'
+              }`
+            }
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live Map
+          </NavLink>
+          <NavLink
             to="/routes"
             className={({ isActive }) =>
               `text-sm font-medium transition-colors hover:text-blue-600 ${
@@ -381,6 +394,14 @@ export function Navbar() {
               className="px-2 py-1.5 text-sm font-semibold text-blue-600"
             >
               Home
+            </NavLink>
+            <NavLink
+              to="/live-map"
+              onClick={() => setMobileMenuOpen(false)}
+              className="inline-flex items-center gap-2 px-2 py-1.5 text-sm font-semibold text-emerald-700"
+            >
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live Bus Map
             </NavLink>
             <NavLink
               to="/routes"

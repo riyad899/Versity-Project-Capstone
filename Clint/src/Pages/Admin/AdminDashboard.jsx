@@ -5,10 +5,12 @@ import {
   Users,
   ShieldCheck,
   LayoutDashboard,
+  Navigation,
 } from 'lucide-react'
 import { useAuth } from '../../Hooks/useAuth'
 import DashboardShell from '@/Components/Dashboard/DashboardShell'
 import MsgModal from '@/Components/MsgModal'
+import LiveFleetTracker from '@/Components/Map/LiveFleetTracker'
 
 import AdminOverviewTab from './components/AdminOverviewTab'
 import AdminUsersTab from './components/AdminUsersTab'
@@ -185,6 +187,11 @@ export default function AdminDashboard() {
           label: 'Overview & Stats',
           icon: LayoutDashboard,
         },
+        {
+          id: 'live-map',
+          label: 'Live Fleet Map',
+          icon: Navigation,
+        },
       ]}
       activeTab={activeTab}
       onTabChange={setActiveTab}
@@ -209,6 +216,14 @@ export default function AdminDashboard() {
 
       {/* ======================= OVERVIEW TAB ======================= */}
       {activeTab === 'overview' && <AdminOverviewTab stats={stats} />}
+
+      {/* ======================= LIVE MAP TAB ======================= */}
+      {activeTab === 'live-map' && (
+        <LiveFleetTracker
+          title="System-Wide Live Fleet Tracking Map"
+          subtitle="Real-time overview of all active buses, driver movement trails, and operational routes."
+        />
+      )}
 
       {/* Edit User Modal */}
       <AdminEditUserModal

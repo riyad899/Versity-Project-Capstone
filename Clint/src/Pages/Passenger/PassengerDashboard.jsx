@@ -18,6 +18,7 @@ export default function PassengerDashboard() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [activeTab, setActiveTab] = useState('buses') // 'buses', 'routes', 'live-tracking'
+  const [focusedBusId, setFocusedBusId] = useState('all')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -65,6 +66,7 @@ export default function PassengerDashboard() {
   })
 
   const activeBusesCount = buses.filter((b) => b.status === 'active').length
+  const liveTripsCount = buses.filter((b) => b.tripStatus === 'on_trip').length
 
   return (
     <DashboardShell
@@ -88,14 +90,18 @@ export default function PassengerDashboard() {
         },
         {
           id: 'live-tracking',
-          label: 'Live GPS Tracking',
+          label: 'Live Bus Map',
           icon: Navigation,
+          badge: liveTripsCount > 0 ? `${liveTripsCount} LIVE` : undefined,
         },
       ]}
       activeTab={activeTab}
       onTabChange={(tab) => {
         setActiveTab(tab)
         setSearch('')
+        if (tab !== 'live-tracking') {
+          setFocusedBusId('all')
+        }
       }}
     >
       <div className="space-y-6">
@@ -158,11 +164,17 @@ export default function PassengerDashboard() {
             <p className="mt-3 text-sm font-medium">Loading campus transit information...</p>
           </div>
         ) : activeTab === 'buses' ? (
-          <PassengerBusesTab buses={filteredBuses} />
+          <PassengerBusesTab
+            buses={filteredBuses}
+            onTrackLive={(bus) => {
+              setFocusedBusId(bus._id || bus.id)
+              setActiveTab('live-tracking')
+            }}
+          />
         ) : activeTab === 'routes' ? (
           <PassengerRoutesTab routes={filteredRoutes} />
         ) : (
-          <PassengerLiveTrackingTab />
+          <PassengerLiveTrackingTab initialBusId={focusedBusId} />
         )}
       </div>
     </DashboardShell>

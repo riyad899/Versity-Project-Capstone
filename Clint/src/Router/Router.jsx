@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import Root from '../Root'
 import Home from '../Pages/Home'
+import LiveMapPage from '../Pages/LiveMapPage'
 import Login from '../Pages/Login'
 import Signup from '../Pages/Signup'
 import ProtectedRoute from '../Components/ProtectedRoute'
@@ -16,6 +17,7 @@ const routes = createBrowserRouter([
     element: <Root />,
     children: [
       { index: true, element: <Home /> },
+      { path: 'live-map', element: <LiveMapPage /> },
     ],
   },
   {

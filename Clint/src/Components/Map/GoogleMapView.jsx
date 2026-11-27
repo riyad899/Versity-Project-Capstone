@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Layers, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Layers, AlertCircle } from 'lucide-react'
+import { calculateBearing, getCompassDirection } from '@/lib/geoUtils'
 
 const GOOGLE_MAPS_API_KEY =
   import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCPoKvZckwNWs33M6XwP4T1Z1feEqYMm9I'
@@ -11,6 +12,7 @@ export default function GoogleMapView({
   busLocation, // { latitude, longitude, heading, speed }
   busInfo, // { busNumber, name, licensePlate }
   routeInfo, // { routeName, startPoint, endPoint, stops }
+  locationHistory = [], // optional array of past waypoints for movement trail
   height = '440px',
   onLocationPick = null,
 }) {
@@ -26,6 +28,14 @@ export default function GoogleMapView({
   const leafletBusMarkerRef = useRef(null)
   const leafletStopMarkersRef = useRef([])
   const leafletPolylineRef = useRef(null)
+  const leafletTrailRef = useRef(null)
+  const leafletAnimIdRef = useRef(null)
+  const prevCoordsRef = useRef(null)
+  const onLocationPickRef = useRef(onLocationPick)
+
+  useEffect(() => {
+    onLocationPickRef.current = onLocationPick
+  }, [onLocationPick])
 
   // Google Maps refs
   const googleContainerRef = useRef(null)
@@ -131,18 +141,18 @@ export default function GoogleMapView({
       leafletMapRef.current = map
       setLeafletReady(true)
 
-      if (onLocationPick) {
-        map.on('click', (e) => {
-          onLocationPick({
+      map.on('click', (e) => {
+        if (onLocationPickRef.current) {
+          onLocationPickRef.current({
             latitude: e.latlng.lat,
             longitude: e.latlng.lng,
           })
-        })
-      }
+        }
+      })
     } catch (err) {
       console.error('Leaflet init error:', err)
     }
-  }, [leafletLoaded, currentLat, currentLng, onLocationPick])
+  }, [leafletLoaded, currentLat, currentLng])
 
   useEffect(() => {
     if (mapEngine === 'leaflet') {
@@ -150,33 +160,74 @@ export default function GoogleMapView({
     }
   }, [mapEngine, initLeafletMap])
 
-  // Update Leaflet Bus Marker & Route
+  // Update Leaflet Bus Marker, Movement Trail & Route
   useEffect(() => {
     if (mapEngine !== 'leaflet' || !leafletReady || !leafletMapRef.current || !window.L) return
     const map = leafletMapRef.current
 
+    let resolvedHeading = Number(busLocation?.heading) || 0
+    if (!resolvedHeading && prevCoordsRef.current) {
+      const moved =
+        Math.abs(currentLat - prevCoordsRef.current.lat) > 0.00002 ||
+        Math.abs(currentLng - prevCoordsRef.current.lng) > 0.00002
+      if (moved) {
+        resolvedHeading = calculateBearing(
+          prevCoordsRef.current.lat,
+          prevCoordsRef.current.lng,
+          currentLat,
+          currentLng
+        )
+      } else {
+        resolvedHeading = prevCoordsRef.current.heading || 0
+      }
+    }
+    prevCoordsRef.current = { lat: currentLat, lng: currentLng, heading: resolvedHeading }
+
+    const dirLabel = getCompassDirection(resolvedHeading)
     const busIconHtml = `
-      <div style="
-        background: #2563EB;
-        color: white;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        border: 3px solid white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.5);
-        font-size: 15px;
-        animation: pulse 2s infinite;
-      ">🚌</div>
+      <div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;">
+        <div style="
+          position:absolute;
+          inset:0;
+          transform:rotate(${resolvedHeading}deg);
+          transition:transform 0.35s ease-out;
+          pointer-events:none;
+        ">
+          <div style="
+            position:absolute;
+            top:0;
+            left:50%;
+            transform:translateX(-50%);
+            width:0;
+            height:0;
+            border-left:5px solid transparent;
+            border-right:5px solid transparent;
+            border-bottom:9px solid #059669;
+          "></div>
+        </div>
+        <div style="
+          background: linear-gradient(135deg, #2563EB 0%, #059669 100%);
+          color: white;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          border: 3px solid white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(37,99,235,0.45);
+          font-size: 15px;
+          position: relative;
+          z-index: 2;
+        ">🚌</div>
+      </div>
     `
 
     const busIcon = window.L.divIcon({
       className: 'leaflet-bus-custom-pin',
       html: busIconHtml,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
     })
 
     const popupHtml = `
@@ -184,23 +235,72 @@ export default function GoogleMapView({
         <strong style="color: #0f172a; font-size: 13px;">🚌 ${busInfo?.name || 'Campus Bus'} (${busInfo?.busNumber || 'N/A'})</strong>
         <div style="color: #64748b; margin-top: 4px; line-height: 1.4;">
           Plate: <strong>${busInfo?.licensePlate || 'N/A'}</strong><br/>
-          Est. Speed: <strong style="color: #2563eb;">${busLocation?.speed || 0} km/h</strong><br/>
+          Est. Speed: <strong style="color: #2563eb;">${busLocation?.speed || 0} km/h</strong> • Heading: <strong>${dirLabel} (${Math.round(resolvedHeading)}°)</strong><br/>
           GPS: ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}
         </div>
       </div>
     `
 
     if (!leafletBusMarkerRef.current) {
-      const marker = window.L.marker([currentLat, currentLng], { icon: busIcon })
+      const marker = window.L.marker([currentLat, currentLng], { icon: busIcon, zIndexOffset: 500 })
         .addTo(map)
         .bindPopup(popupHtml)
       leafletBusMarkerRef.current = marker
     } else {
-      leafletBusMarkerRef.current.setLatLng([currentLat, currentLng])
-      leafletBusMarkerRef.current.setPopupContent(popupHtml)
+      const marker = leafletBusMarkerRef.current
+      marker.setIcon(busIcon)
+      marker.setPopupContent(popupHtml)
+
+      if (leafletAnimIdRef.current) {
+        cancelAnimationFrame(leafletAnimIdRef.current)
+        leafletAnimIdRef.current = null
+      }
+      const startPos = marker.getLatLng()
+      const dLat = currentLat - startPos.lat
+      const dLng = currentLng - startPos.lng
+      if (Math.abs(dLat) > 0.000005 || Math.abs(dLng) > 0.000005) {
+        if (Math.abs(dLat) > 0.5 || Math.abs(dLng) > 0.5) {
+          marker.setLatLng([currentLat, currentLng])
+        } else {
+          const startTime = performance.now()
+          const step = (now) => {
+            const p = Math.min(1, (now - startTime) / 750)
+            const eased = 1 - Math.pow(1 - p, 3)
+            marker.setLatLng([startPos.lat + dLat * eased, startPos.lng + dLng * eased])
+            if (p < 1) {
+              leafletAnimIdRef.current = requestAnimationFrame(step)
+            } else {
+              leafletAnimIdRef.current = null
+            }
+          }
+          leafletAnimIdRef.current = requestAnimationFrame(step)
+        }
+      }
     }
 
     map.panTo([currentLat, currentLng], { animate: true })
+
+    // Render Movement Trail from locationHistory
+    if (leafletTrailRef.current) {
+      map.removeLayer(leafletTrailRef.current)
+      leafletTrailRef.current = null
+    }
+    const trailPts = Array.isArray(locationHistory)
+      ? locationHistory
+          .filter((pt) => pt?.latitude != null && pt?.longitude != null)
+          .map((pt) => [Number(pt.latitude), Number(pt.longitude)])
+      : []
+    if (trailPts.length > 0) {
+      trailPts.push([currentLat, currentLng])
+      if (trailPts.length >= 2) {
+        leafletTrailRef.current = window.L.polyline(trailPts, {
+          color: '#10B981',
+          weight: 5,
+          opacity: 0.9,
+          lineCap: 'round',
+        }).addTo(map)
+      }
+    }
 
     // Render Stops and Polyline
     leafletStopMarkersRef.current.forEach((m) => map.removeLayer(m))
@@ -298,7 +398,13 @@ export default function GoogleMapView({
       }).addTo(map)
       leafletPolylineRef.current = polyline
     }
-  }, [mapEngine, leafletReady, currentLat, currentLng, busInfo, busLocation, routeInfo])
+  }, [mapEngine, currentLat, currentLng, busInfo, busLocation, routeInfo, locationHistory])
+
+  useEffect(() => {
+    return () => {
+      if (leafletAnimIdRef.current) cancelAnimationFrame(leafletAnimIdRef.current)
+    }
+  }, [])
 
   // -------------------------------------------------------------
   // GOOGLE MAPS ENGINE IMPLEMENTATION
