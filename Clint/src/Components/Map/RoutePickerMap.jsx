@@ -19,6 +19,7 @@ export default function RoutePickerMap({
   const markersRef = useRef([])
   const polylineRef = useRef(null)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
 
   // Keep latest pickMode and callback in refs for Leaflet click listener
@@ -109,6 +110,7 @@ export default function RoutePickerMap({
     })
 
     mapRef.current = map
+    setMapReady(true)
 
     // Fix Leaflet resize issue inside modal
     setTimeout(() => {
@@ -116,6 +118,7 @@ export default function RoutePickerMap({
     }, 200)
 
     return () => {
+      setMapReady(false)
       map.remove()
       mapRef.current = null
     }
@@ -125,9 +128,9 @@ export default function RoutePickerMap({
   const lastCenterRef = useRef(null)
   const hasFittedBoundsRef = useRef(false)
 
-  // Render Markers & Polyline whenever coordinates change
+  // Render Markers & Polyline whenever coordinates change or map becomes ready
   useEffect(() => {
-    if (!mapRef.current || !window.L) return
+    if (!mapReady || !mapRef.current || !window.L) return
     const map = mapRef.current
 
     markersRef.current.forEach((m) => map.removeLayer(m))
@@ -198,7 +201,7 @@ export default function RoutePickerMap({
         map.panTo([startCoordinates.lat, startCoordinates.lng], { animate: true })
       }
     }
-  }, [startCoordinates, endCoordinates, stopCoordinates])
+  }, [mapReady, startCoordinates, endCoordinates, stopCoordinates])
 
   const activeMode = lockedMode || pickMode
 

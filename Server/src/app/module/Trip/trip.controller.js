@@ -68,6 +68,17 @@ const getAllLiveTrips = catchAsync(async (req, res) => {
   });
 });
 
+const getLiveBusMapFeed = catchAsync(async (req, res) => {
+  const result = await TripService.getLiveBusMapFeed();
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Live interactive bus map feed retrieved successfully!',
+    data: result,
+  });
+});
+
 const getTripHistory = catchAsync(async (req, res) => {
   const driverId = req.user.role === 'driver' ? (req.user.id || req.user._id) : null;
   const result = await TripService.getTripHistory(req.query, driverId);
@@ -80,12 +91,28 @@ const getTripHistory = catchAsync(async (req, res) => {
   });
 });
 
+const updateTripDelay = catchAsync(async (req, res) => {
+  const { id: tripId } = req.params;
+  const result = await TripService.updateTripDelay(tripId, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.delayMinutes > 0
+      ? `Trip marked delayed by ${result.delayMinutes} minutes.`
+      : 'Trip delay cleared! Trip is marked on time.',
+    data: result,
+  });
+});
+
 export const TripController = {
   startTrip,
   stopTrip,
   updateTripLocation,
+  updateTripDelay,
   getActiveTrip,
   getAllLiveTrips,
+  getLiveBusMapFeed,
   getTripHistory,
 };
 

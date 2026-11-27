@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../../Hooks/useAuth'
 import apiClient from '../../Hooks/Axios'
 import toast from 'react-hot-toast'
-import { Search, Bus, Route as RouteIcon, MapPin, RefreshCw, Navigation, Filter } from 'lucide-react'
+import { Search, Bus, Route as RouteIcon, MapPin, RefreshCw, Navigation } from 'lucide-react'
 import DashboardShell from '@/Components/Dashboard/DashboardShell'
 import { Input } from '@/Components/ui/input'
 import { Button } from '@/Components/ui/button'
@@ -21,6 +21,7 @@ export default function PassengerDashboard() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [stopFilter, setStopFilter] = useState('all')
   const [activeTab, setActiveTab] = useState('routes') // 'routes', 'buses', 'stops', 'live-tracking'
+  const [focusedBusId, setFocusedBusId] = useState('all')
 
   const fetchData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true)
@@ -130,6 +131,10 @@ export default function PassengerDashboard() {
     return buses.filter((b) => b.status === 'active').length
   }, [buses])
 
+  const liveTripsCount = useMemo(() => {
+    return buses.filter((b) => b.tripStatus === 'on_trip').length
+  }, [buses])
+
   return (
     <DashboardShell
       roleTitle="Passenger Portal"
@@ -158,14 +163,18 @@ export default function PassengerDashboard() {
         },
         {
           id: 'live-tracking',
-          label: 'Live GPS Tracking',
+          label: 'Live Bus Map',
           icon: Navigation,
+          badge: liveTripsCount > 0 ? `${liveTripsCount} LIVE` : undefined,
         },
       ]}
       activeTab={activeTab}
       onTabChange={(tab) => {
         setActiveTab(tab)
         setSearch('')
+        if (tab !== 'live-tracking') {
+          setFocusedBusId('all')
+        }
       }}
     >
       <div className="space-y-6">
@@ -279,7 +288,13 @@ export default function PassengerDashboard() {
         ) : activeTab === 'routes' ? (
           <PassengerRoutesTab routes={filteredRoutes} buses={buses} />
         ) : activeTab === 'buses' ? (
-          <PassengerBusesTab buses={filteredBuses} />
+          <PassengerBusesTab
+            buses={filteredBuses}
+            onTrackLive={(bus) => {
+              setFocusedBusId(bus._id || bus.id)
+              setActiveTab('live-tracking')
+            }}
+          />
         ) : activeTab === 'stops' ? (
           <PassengerStopsTab
             routes={routes}
@@ -288,7 +303,7 @@ export default function PassengerDashboard() {
             stopFilter={stopFilter}
           />
         ) : (
-          <PassengerLiveTrackingTab />
+          <PassengerLiveTrackingTab initialBusId={focusedBusId} />
         )}
       </div>
     </DashboardShell>

@@ -24,6 +24,16 @@ export const tripSchema = new Schema(
       enum: ['in_progress', 'completed', 'cancelled'],
       default: 'in_progress',
     },
+    delayMinutes: {
+      type: Number,
+      default: 0,
+      min: [0, 'Delay cannot be negative'],
+    },
+    delayReason: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     startTime: {
       type: Date,
       default: Date.now,

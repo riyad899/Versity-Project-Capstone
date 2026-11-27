@@ -6,6 +6,9 @@ import TripValidation from './trip.validation.js';
 
 const router = Router();
 
+// Public sanitized interactive live bus map feed (shows active buses & movement)
+router.get('/live-map', TripController.getLiveBusMapFeed);
+
 // Public / Authenticated Live Trips query (Passenger, Driver, Manager, Admin)
 router.get(
   '/live',
@@ -41,6 +44,13 @@ router.post(
   checkAuth('driver', 'admin'),
   validateReq(TripValidation.updateLocationValidationSchema),
   TripController.updateTripLocation
+);
+
+// Update delay for an ongoing trip (Transportation Manager & Admin)
+router.patch(
+  '/:id/delay',
+  checkAuth('transportation-manager', 'admin'),
+  TripController.updateTripDelay
 );
 
 // Stop / complete an active trip (Drivers, Transportation Manager, Admin)

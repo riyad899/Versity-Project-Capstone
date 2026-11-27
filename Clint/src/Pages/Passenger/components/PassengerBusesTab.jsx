@@ -1,8 +1,9 @@
 import { Bus, Route as RouteIcon, Clock, ArrowRight, MapPin, User, Navigation } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card'
 import { Badge } from '@/Components/ui/badge'
+import { Button } from '@/Components/ui/button'
 
-export default function PassengerBusesTab({ buses = [] }) {
+export default function PassengerBusesTab({ buses, onTrackLive }) {
   if (buses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
@@ -142,23 +143,32 @@ export default function PassengerBusesTab({ buses = [] }) {
                 </div>
               )}
 
-              {/* Driver Box */}
-              <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
-                    {bus.assignedDriver?.name ? bus.assignedDriver.name.charAt(0).toUpperCase() : 'U'}
-                  </div>
-                  <span className="truncate">
-                    Driver:{' '}
-                    <strong className="text-slate-800">
-                      {bus.assignedDriver?.name || 'Unassigned'}
-                    </strong>
-                  </span>
+              {/* Driver Box & Track Live */}
+              <div className="flex items-center justify-between gap-2 text-xs text-slate-600 pt-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  {bus.assignedDriver ? (
+                    <span className="truncate">
+                      Driver: <strong>{bus.assignedDriver.name}</strong>
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 italic">Driver: Unassigned</span>
+                  )}
                 </div>
-                {bus.assignedDriver && (
-                  <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
-                    On Duty
-                  </span>
+
+                {onTrackLive && bus.status === 'active' && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={bus.tripStatus === 'on_trip' ? 'default' : 'outline'}
+                    onClick={() => onTrackLive(bus)}
+                    className={`h-7 px-2.5 text-[11px] font-bold shrink-0 ${
+                      bus.tripStatus === 'on_trip' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''
+                    }`}
+                  >
+                    <Navigation className="h-3 w-3 mr-1" />
+                    {bus.tripStatus === 'on_trip' ? 'Track Live' : 'View on Map'}
+                  </Button>
                 )}
               </div>
             </CardContent>

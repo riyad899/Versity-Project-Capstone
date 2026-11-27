@@ -52,6 +52,13 @@ router.patch(
   BusController.assignRoute
 );
 
+// Update bus delay (Transportation Manager & Admin)
+router.patch(
+  '/:id/delay',
+  checkAuth('transportation-manager', 'admin'),
+  BusController.updateBusDelay
+);
+
 // Delete bus (Transportation Manager & Admin)
 router.delete(
   '/:id',

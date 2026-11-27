@@ -41,6 +41,7 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
     heading: 0,
     updatedAt: new Date(),
   })
+  const [locationHistory, setLocationHistory] = useState([])
 
   const watchIdRef = useRef(null)
   const timerRef = useRef(null)
@@ -54,12 +55,15 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
       ])
 
       if (tripRes.status === 'fulfilled' && tripRes.value.data?.data) {
-        setActiveTrip(tripRes.value.data.data)
-        if (tripRes.value.data.data.currentLocation) {
-          setCurrentCoords(tripRes.value.data.data.currentLocation)
+        const tripData = tripRes.value.data.data
+        setActiveTrip(tripData)
+        if (tripData.currentLocation) {
+          setCurrentCoords(tripData.currentLocation)
         }
+        setLocationHistory(Array.isArray(tripData.locationHistory) ? tripData.locationHistory.slice(-80) : [])
       } else {
         setActiveTrip(null)
+        setLocationHistory([])
       }
 
       if (routeRes.status === 'fulfilled' && routeRes.value.data?.data) {
@@ -127,11 +131,13 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
           speed: Number(speed) || 0,
           heading: Number(heading) || 0,
         }
-        await apiClient.post(`/api/v1/trips/${activeTrip._id}/location`, payload)
-        setCurrentCoords({
+        const res = await apiClient.post(`/api/v1/trips/${activeTrip._id}/location`, payload)
+        const syncedLoc = res.data?.data?.currentLocation || {
           ...payload,
           updatedAt: new Date(),
-        })
+        }
+        setCurrentCoords(syncedLoc)
+        setLocationHistory((prev) => [...prev.slice(-79), syncedLoc])
       } catch (err) {
         console.error('Failed to sync location:', err)
       }
@@ -270,13 +276,15 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
       })
 
       setActiveTrip(res.data?.data)
-      setCurrentCoords({
+      const startedLoc = res.data?.data?.currentLocation || {
         latitude: initLat,
         longitude: initLng,
         speed: 0,
         heading: 0,
         updatedAt: new Date(),
-      })
+      }
+      setCurrentCoords(startedLoc)
+      setLocationHistory([startedLoc])
       toast.success('🚀 Trip started successfully! Live location broadcasting enabled.')
       setAutoShare(true)
       if (onTripStateChange) onTripStateChange()
@@ -300,6 +308,7 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
 
       setAutoShare(false)
       setActiveTrip(null)
+      setLocationHistory([])
       setShowStopModal(false)
       setStopRemarks('')
       toast.success('🏁 Trip completed and ended successfully!')
@@ -471,6 +480,7 @@ export default function DriverLiveTripTab({ myBus, driverUser, onTripStateChange
                 busLocation={currentCoords}
                 busInfo={currentBus}
                 routeInfo={currentRoute}
+                locationHistory={locationHistory}
                 height="450px"
                 onLocationPick={activeTrip ? handleMapLocationPick : null}
               />
