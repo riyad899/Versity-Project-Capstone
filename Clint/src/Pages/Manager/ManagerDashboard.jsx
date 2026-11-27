@@ -10,10 +10,12 @@ import {
   ClipboardList,
   CalendarClock,
   Plus,
+  Navigation,
 } from 'lucide-react'
 import { useAuth } from '../../Hooks/useAuth'
 import DashboardShell from '@/Components/Dashboard/DashboardShell'
 import { Button } from '@/Components/ui/button'
+import LiveFleetTracker from '@/Components/Map/LiveFleetTracker'
 
 // Modular Tab Components
 import ManagerUsersTab from './components/ManagerUsersTab'
@@ -29,7 +31,7 @@ import AssignDriverModal from './components/AssignDriverModal'
 import AssignRouteModal from './components/AssignRouteModal'
 import ScheduleModal from './components/ScheduleModal'
 
-const VALID_TABS = ['users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules']
+const VALID_TABS = ['users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules', 'live-map']
 
 const DEFAULT_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -518,6 +520,11 @@ export default function ManagerDashboard() {
           icon: CalendarClock,
           badge: schedules.length,
         },
+        {
+          id: 'live-map',
+          label: 'Live Fleet Map',
+          icon: Navigation,
+        },
       ]}
       activeTab={activeTab}
       onTabChange={handleTabChange}
@@ -622,6 +629,14 @@ export default function ManagerDashboard() {
           }}
           onEditSchedule={startEditSchedule}
           onDeleteSchedule={handleDeleteSchedule}
+        />
+      )}
+
+      {/* TAB 6: LIVE FLEET MAP */}
+      {activeTab === 'live-map' && (
+        <LiveFleetTracker
+          title="Manager Live Fleet Location & Movement Monitor"
+          subtitle="Track every active campus bus, real-time speed, heading, and route progress across your fleet."
         />
       )}
 
