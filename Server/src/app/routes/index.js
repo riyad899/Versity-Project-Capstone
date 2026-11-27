@@ -7,6 +7,7 @@ import RouteRoutes from '../module/Route/route.route.js';
 import ScheduleRoutes from '../module/Schedule/schedule.route.js';
 import StopAssociatedRoutes from '../module/StopAssociated/stopAssociated.route.js';
 import TransportationManagerRoutes from '../module/TransportationManager/transportationManager.route.js';
+import TripRoutes from '../module/Trip/trip.route.js';
 import UserRoutes from '../module/User/user.route.js';
 
 const router = Router();
@@ -47,6 +48,10 @@ const moduleRoutes = [
   {
     path: '/stop-associated',
     route: StopAssociatedRoutes,
+  },
+  {
+    path: '/trips',
+    route: TripRoutes,
   },
 ];
 

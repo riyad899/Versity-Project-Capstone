@@ -25,8 +25,8 @@ const getRouteStopsById = catchAsync(async (req, res) => {
 
 const addStopToRoute = catchAsync(async (req, res) => {
   const { routeId } = req.params;
-  const { stopName } = req.body;
-  const result = await StopAssociatedService.addStopToRouteInDB(routeId, stopName);
+  const { stopName, lat, lng } = req.body;
+  const result = await StopAssociatedService.addStopToRouteInDB(routeId, stopName, lat, lng);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -37,8 +37,8 @@ const addStopToRoute = catchAsync(async (req, res) => {
 
 const updateStopInRoute = catchAsync(async (req, res) => {
   const { routeId } = req.params;
-  const { oldStopName, newStopName } = req.body;
-  const result = await StopAssociatedService.updateStopInRouteInDB(routeId, oldStopName, newStopName);
+  const { oldStopName, newStopName, lat, lng } = req.body;
+  const result = await StopAssociatedService.updateStopInRouteInDB(routeId, oldStopName, newStopName, lat, lng);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -73,8 +73,14 @@ const updateAllStopsInRoute = catchAsync(async (req, res) => {
 
 const updateRouteEndpoints = catchAsync(async (req, res) => {
   const { routeId } = req.params;
-  const { startPoint, endPoint } = req.body;
-  const result = await StopAssociatedService.updateRouteEndpointsInDB(routeId, startPoint, endPoint);
+  const { startPoint, endPoint, startCoordinates, endCoordinates } = req.body;
+  const result = await StopAssociatedService.updateRouteEndpointsInDB(
+    routeId,
+    startPoint,
+    endPoint,
+    startCoordinates,
+    endCoordinates
+  );
   sendResponse(res, {
     statusCode: 200,
     success: true,
