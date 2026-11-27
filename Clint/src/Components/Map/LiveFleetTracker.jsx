@@ -23,6 +23,7 @@ import { Badge } from '@/Components/ui/badge'
 import { Button } from '@/Components/ui/button'
 import { Input } from '@/Components/ui/input'
 import ActiveBusesMap from '@/Components/Map/ActiveBusesMap'
+import TrafficAndAlternativesPanel from '@/Components/Map/TrafficAndAlternativesPanel'
 import {
   buildRouteNodes,
   calculateBearing,
@@ -113,6 +114,8 @@ export default function LiveFleetTracker({
   const [selectedBusId, setSelectedBusId] = useState(initialBusId || 'all')
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'on_trip' | 'idle'
   const [searchQuery, setSearchQuery] = useState('')
+  const [trafficData, setTrafficData] = useState(null)
+  const [selectedAlternative, setSelectedAlternative] = useState(null)
 
   // Client-side movement simulation preview mode
   const [simulationActive, setSimulationActive] = useState(false)
@@ -552,7 +555,12 @@ export default function LiveFleetTracker({
                 <ActiveBusesMap
                   buses={filteredBuses}
                   selectedBusId={selectedBusId}
-                  onSelectBus={(busId) => setSelectedBusId(busId)}
+                  onSelectBus={(busId) => {
+                    setSelectedBusId(busId)
+                    setSelectedAlternative(null)
+                  }}
+                  trafficSegments={trafficData?.trafficSegments || []}
+                  selectedAlternative={selectedAlternative}
                   height={mapHeight}
                 />
 
@@ -582,6 +590,17 @@ export default function LiveFleetTracker({
                 )}
               </CardContent>
             </Card>
+
+            {/* Traffic & Alternative Routes for Focused Bus */}
+            {focusedBus?.route?._id && !String(focusedBus.route._id).startsWith('sim-') && (
+              <TrafficAndAlternativesPanel
+                routeId={focusedBus.route._id}
+                canReport={false}
+                selectedAlternative={selectedAlternative}
+                onSelectAlternative={setSelectedAlternative}
+                onTrafficDataLoaded={setTrafficData}
+              />
+            )}
           </div>
 
           {/* Right Sidebar: Active Buses List & Focused Telemetry */}
