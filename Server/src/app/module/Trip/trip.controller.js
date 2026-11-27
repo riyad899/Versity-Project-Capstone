@@ -68,6 +68,17 @@ const getAllLiveTrips = catchAsync(async (req, res) => {
   });
 });
 
+const getLiveBusMapFeed = catchAsync(async (req, res) => {
+  const result = await TripService.getLiveBusMapFeed();
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Live interactive bus map feed retrieved successfully!',
+    data: result,
+  });
+});
+
 const getTripHistory = catchAsync(async (req, res) => {
   const driverId = req.user.role === 'driver' ? (req.user.id || req.user._id) : null;
   const result = await TripService.getTripHistory(req.query, driverId);
@@ -86,6 +97,7 @@ export const TripController = {
   updateTripLocation,
   getActiveTrip,
   getAllLiveTrips,
+  getLiveBusMapFeed,
   getTripHistory,
 };
 
