@@ -4,6 +4,20 @@ import { RouteModel, Bus } from '../../../schema/index.js';
 const getAllRoutesWithStopsFromDB = async () => {
   const routes = await RouteModel.find().populate('createdBy', 'name email role').sort({ createdAt: -1 });
 
+  const routeIds = routes.map((r) => r._id);
+  const buses = await Bus.find({ assignedRoute: { $in: routeIds } })
+    .populate('assignedDriver', 'name email image role')
+    .select('busNumber name licensePlate capacity status assignedRoute assignedDriver');
+
+  const busMap = {};
+  buses.forEach((b) => {
+    if (b.assignedRoute) {
+      const rid = b.assignedRoute.toString();
+      if (!busMap[rid]) busMap[rid] = [];
+      busMap[rid].push(b);
+    }
+  });
+
   return routes.map((route) => {
     const stopsList = Array.isArray(route.stops) ? route.stops : [];
     return {
@@ -12,6 +26,7 @@ const getAllRoutesWithStopsFromDB = async () => {
       lastDestination: route.endPoint,
       totalStopsCount: stopsList.length,
       fullJourneySequence: [route.startPoint, ...stopsList, route.endPoint],
+      assignedBuses: busMap[route._id.toString()] || [],
     };
   });
 };

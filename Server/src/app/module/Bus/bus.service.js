@@ -1,5 +1,5 @@
 import AppError from '../../errorHelpers/appError.js';
-import { Bus, RouteModel, User } from '../../../schema/index.js';
+import { Bus, RouteModel, User, Trip } from '../../../schema/index.js';
 
 const createBusIntoDB = async (payload, createdBy) => {
   const isBusExist = await Bus.findOne({
@@ -59,7 +59,7 @@ const getAllBusesFromDB = async (query = {}) => {
 
   const buses = await Bus.find(filter)
     .populate('assignedDriver', 'name email image role')
-    .populate('assignedRoute', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates status')
+    .populate('assignedRoute', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates scheduleTimes status')
     .populate('createdBy', 'name email role')
     .sort({ createdAt: -1 });
 
@@ -69,7 +69,7 @@ const getAllBusesFromDB = async (query = {}) => {
 const getBusByIdFromDB = async (id) => {
   const bus = await Bus.findById(id)
     .populate('assignedDriver', 'name email image role')
-    .populate('assignedRoute', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates status')
+    .populate('assignedRoute', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates scheduleTimes status')
     .populate('createdBy', 'name email role');
 
   if (!bus) {
@@ -109,7 +109,7 @@ const updateBusIntoDB = async (id, payload) => {
     runValidators: true,
   })
     .populate('assignedDriver', 'name email image role')
-    .populate('assignedRoute', 'routeName startPoint endPoint stops status');
+    .populate('assignedRoute', 'routeName startPoint endPoint stops scheduleTimes status');
 
   if (!bus) {
     throw new AppError(404, 'Bus not found!');
@@ -167,13 +167,44 @@ const assignRouteToBus = async (busId, routeId) => {
     busId,
     { assignedRoute: routeId || null },
     { new: true }
-  ).populate('assignedRoute', 'routeName startPoint endPoint stops status');
+  ).populate('assignedRoute', 'routeName startPoint endPoint stops scheduleTimes status');
 
   if (!bus) {
     throw new AppError(404, 'Bus not found!');
   }
 
   return bus;
+};
+
+const updateBusDelay = async (busId, payload = {}) => {
+  const { delayMinutes = 0, delayReason = '' } = payload;
+  const numericDelay = Math.max(0, Number(delayMinutes) || 0);
+
+  const bus = await Bus.findById(busId);
+  if (!bus) {
+    throw new AppError(404, 'Bus not found!');
+  }
+
+  const updatedBus = await Bus.findByIdAndUpdate(
+    busId,
+    {
+      delayMinutes: numericDelay,
+      delayReason: delayReason.trim(),
+    },
+    { new: true }
+  )
+    .populate('assignedDriver', 'name email image role')
+    .populate('assignedRoute', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates scheduleTimes status');
+
+  // If bus is currently on a trip, sync delay with that active trip
+  if (bus.currentTrip) {
+    await Trip.findByIdAndUpdate(bus.currentTrip, {
+      delayMinutes: numericDelay,
+      delayReason: delayReason.trim(),
+    });
+  }
+
+  return updatedBus;
 };
 
 const deleteBusFromDB = async (id) => {
@@ -191,6 +222,7 @@ export const BusService = {
   updateBusIntoDB,
   assignDriverToBus,
   assignRouteToBus,
+  updateBusDelay,
   deleteBusFromDB,
 };
 

@@ -281,7 +281,7 @@ const getAllLiveTrips = async () => {
 const getLiveBusMapFeed = async () => {
   const [liveTrips, activeFleetBuses, activeRoutes] = await Promise.all([
     Trip.find({ status: 'in_progress' })
-      .populate('bus', 'busNumber name licensePlate capacity status tripStatus currentLocation')
+      .populate('bus', 'busNumber name licensePlate capacity status tripStatus currentLocation delayMinutes delayReason')
       .populate('route', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates scheduleTimes')
       .populate('driver', 'name')
       .sort({ updatedAt: -1 }),
@@ -311,6 +311,8 @@ const getLiveBusMapFeed = async () => {
       : nowMs;
     const isFresh = nowMs - lastUpdatedMs < 120000;
     const isMoving = (Number(trip.currentLocation?.speed) || 0) > 1 && isFresh;
+    const delayMinutes = trip.delayMinutes || trip.bus?.delayMinutes || 0;
+    const delayReason = trip.delayReason || trip.bus?.delayReason || '';
 
     mappedLiveTrips.push({
       id: busIdStr,
@@ -319,6 +321,8 @@ const getLiveBusMapFeed = async () => {
       isMoving,
       startTime: trip.startTime,
       remarks: trip.remarks || '',
+      delayMinutes,
+      delayReason,
       distanceTraveledKm: calculatePathDistanceKm(recentHistory),
       currentLocation: trip.currentLocation,
       locationHistory: recentHistory,
@@ -330,6 +334,8 @@ const getLiveBusMapFeed = async () => {
         capacity: trip.bus.capacity,
         status: trip.bus.status,
         tripStatus: 'on_trip',
+        delayMinutes,
+        delayReason,
       },
       route: trip.route || null,
       driverName: trip.driver?.name || 'Assigned Driver',
@@ -369,6 +375,9 @@ const getLiveBusMapFeed = async () => {
           updatedAt: bus.currentLocation?.updatedAt || bus.updatedAt || nowMs,
         };
 
+    const delayMinutes = bus.delayMinutes || 0;
+    const delayReason = bus.delayReason || '';
+
     mappedStandbyBuses.push({
       id: busIdStr,
       tripId: null,
@@ -376,6 +385,8 @@ const getLiveBusMapFeed = async () => {
       isMoving: false,
       startTime: null,
       remarks: '',
+      delayMinutes,
+      delayReason,
       distanceTraveledKm: 0,
       currentLocation: resolvedLoc,
       locationHistory: [],
@@ -387,6 +398,8 @@ const getLiveBusMapFeed = async () => {
         capacity: bus.capacity,
         status: bus.status,
         tripStatus: 'idle',
+        delayMinutes,
+        delayReason,
       },
       route: bus.assignedRoute || null,
       driverName: bus.assignedDriver?.name || null,
@@ -428,10 +441,35 @@ const getTripHistory = async (query = {}, driverId = null) => {
   return trips;
 };
 
+const updateTripDelay = async (tripId, payload = {}) => {
+  const { delayMinutes = 0, delayReason = '' } = payload;
+  const numericDelay = Math.max(0, Number(delayMinutes) || 0);
+
+  const trip = await Trip.findById(tripId);
+  if (!trip) {
+    throw new AppError(404, 'Active trip not found!');
+  }
+
+  trip.delayMinutes = numericDelay;
+  trip.delayReason = delayReason.trim();
+  await trip.save();
+
+  // Sync with bus
+  if (trip.bus) {
+    await Bus.findByIdAndUpdate(trip.bus, {
+      delayMinutes: numericDelay,
+      delayReason: delayReason.trim(),
+    });
+  }
+
+  return trip;
+};
+
 export const TripService = {
   startTrip,
   stopTrip,
   updateTripLocation,
+  updateTripDelay,
   getActiveTripForDriver,
   getAllLiveTrips,
   getLiveBusMapFeed,

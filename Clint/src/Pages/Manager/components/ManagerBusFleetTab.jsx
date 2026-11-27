@@ -87,18 +87,33 @@ export default function ManagerBusFleetTab({
                         <span className="font-bold text-slate-900">{bus.capacity}</span> seats
                       </td>
                       <td className="px-5 py-3.5">
-                        <Badge
-                          variant={
-                            bus.status === 'active'
-                              ? 'softGreen'
-                              : bus.status === 'maintenance'
-                              ? 'softAmber'
-                              : 'softRed'
-                          }
-                          className="capitalize text-xs"
-                        >
-                          {bus.status}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <div className="flex items-center gap-1.5">
+                            <Badge
+                              variant={
+                                bus.status === 'active'
+                                  ? 'softGreen'
+                                  : bus.status === 'maintenance'
+                                  ? 'softAmber'
+                                  : 'softRed'
+                              }
+                              className="capitalize text-xs"
+                            >
+                              {bus.status}
+                            </Badge>
+                            {bus.tripStatus === 'on_trip' && (
+                              <Badge variant="softGreen" className="text-[10px] font-bold flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                ON TRIP
+                              </Badge>
+                            )}
+                          </div>
+                          {(bus.delayMinutes || 0) > 0 && (
+                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              ⚠️ +{bus.delayMinutes}m late
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">

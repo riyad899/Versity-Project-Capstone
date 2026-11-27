@@ -36,6 +36,16 @@ export const busSchema = new Schema(
       enum: ['idle', 'on_trip'],
       default: 'idle',
     },
+    delayMinutes: {
+      type: Number,
+      default: 0,
+      min: [0, 'Delay cannot be negative'],
+    },
+    delayReason: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     currentTrip: {
       type: Schema.Types.ObjectId,
       ref: 'Trip',

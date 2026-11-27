@@ -91,10 +91,25 @@ const getTripHistory = catchAsync(async (req, res) => {
   });
 });
 
+const updateTripDelay = catchAsync(async (req, res) => {
+  const { id: tripId } = req.params;
+  const result = await TripService.updateTripDelay(tripId, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.delayMinutes > 0
+      ? `Trip marked delayed by ${result.delayMinutes} minutes.`
+      : 'Trip delay cleared! Trip is marked on time.',
+    data: result,
+  });
+});
+
 export const TripController = {
   startTrip,
   stopTrip,
   updateTripLocation,
+  updateTripDelay,
   getActiveTrip,
   getAllLiveTrips,
   getLiveBusMapFeed,

@@ -46,6 +46,13 @@ router.post(
   TripController.updateTripLocation
 );
 
+// Update delay for an ongoing trip (Transportation Manager & Admin)
+router.patch(
+  '/:id/delay',
+  checkAuth('transportation-manager', 'admin'),
+  TripController.updateTripDelay
+);
+
 // Stop / complete an active trip (Drivers, Transportation Manager, Admin)
 router.patch(
   '/:id/stop',

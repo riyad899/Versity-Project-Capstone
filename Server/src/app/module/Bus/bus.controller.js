@@ -75,6 +75,20 @@ const assignRoute = catchAsync(async (req, res) => {
   });
 });
 
+const updateBusDelay = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await BusService.updateBusDelay(id, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.delayMinutes > 0
+      ? `Bus status updated: Delayed by ${result.delayMinutes} minutes.`
+      : 'Bus delay cleared! Bus is now marked on time.',
+    data: result,
+  });
+});
+
 const deleteBus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const result = await BusService.deleteBusFromDB(id);
@@ -94,6 +108,7 @@ export const BusController = {
   updateBus,
   assignDriver,
   assignRoute,
+  updateBusDelay,
   deleteBus,
 };
 

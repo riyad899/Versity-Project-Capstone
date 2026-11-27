@@ -34,7 +34,25 @@ const getAllRoutesFromDB = async (query = {}) => {
     .populate('createdBy', 'name email role')
     .sort({ createdAt: -1 });
 
-  return routes;
+  // Attach assigned buses to each route
+  const routeIds = routes.map((r) => r._id);
+  const buses = await Bus.find({ assignedRoute: { $in: routeIds } })
+    .populate('assignedDriver', 'name email image role')
+    .select('busNumber name licensePlate capacity status assignedRoute assignedDriver');
+
+  const busMap = {};
+  buses.forEach((b) => {
+    if (b.assignedRoute) {
+      const rid = b.assignedRoute.toString();
+      if (!busMap[rid]) busMap[rid] = [];
+      busMap[rid].push(b);
+    }
+  });
+
+  return routes.map((route) => ({
+    ...route.toObject(),
+    assignedBuses: busMap[route._id.toString()] || [],
+  }));
 };
 
 const getRouteByIdFromDB = async (id) => {

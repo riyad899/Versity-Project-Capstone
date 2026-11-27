@@ -11,6 +11,7 @@ import {
   CalendarClock,
   Plus,
   Navigation,
+  Radio,
 } from 'lucide-react'
 import { useAuth } from '../../Hooks/useAuth'
 import DashboardShell from '@/Components/Dashboard/DashboardShell'
@@ -18,6 +19,7 @@ import { Button } from '@/Components/ui/button'
 import LiveFleetTracker from '@/Components/Map/LiveFleetTracker'
 
 // Modular Tab Components
+import ManagerRealtimeMonitorTab from './components/ManagerRealtimeMonitorTab'
 import ManagerUsersTab from './components/ManagerUsersTab'
 import ManagerBusFleetTab from './components/ManagerBusFleetTab'
 import ManagerDriverRouteAssignTab from './components/ManagerDriverRouteAssignTab'
@@ -31,7 +33,7 @@ import AssignDriverModal from './components/AssignDriverModal'
 import AssignRouteModal from './components/AssignRouteModal'
 import ScheduleModal from './components/ScheduleModal'
 
-const VALID_TABS = ['users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules', 'live-map']
+const VALID_TABS = ['realtime-monitor', 'users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules', 'live-map']
 
 const DEFAULT_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -40,9 +42,9 @@ export default function ManagerDashboard() {
   const { tab: urlTab } = useParams()
   const navigate = useNavigate()
 
-  // Sidebar tabs: 'users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules'
+  // Sidebar tabs: 'realtime-monitor', 'users', 'bus-infos', 'driver-assign', 'route-stop-associate', 'schedules', 'live-map'
   const [activeTab, setActiveTab] = useState(
-    urlTab && VALID_TABS.includes(urlTab) ? urlTab : 'users'
+    urlTab && VALID_TABS.includes(urlTab) ? urlTab : 'realtime-monitor'
   )
 
   // Sync tab with URL parameter if present
@@ -493,6 +495,19 @@ export default function ManagerDashboard() {
       portalIcon={ClipboardList}
       navItems={[
         {
+          id: 'realtime-monitor',
+          label: 'Real-Time Monitor',
+          icon: Radio,
+          badge:
+            buses.filter((b) => (b.delayMinutes || 0) > 0).length > 0
+              ? `${buses.filter((b) => (b.delayMinutes || 0) > 0).length} DELAY`
+              : buses.filter((b) => b.tripStatus === 'on_trip').length > 0
+              ? `${buses.filter((b) => b.tripStatus === 'on_trip').length} LIVE`
+              : undefined,
+          badgeVariant:
+            buses.filter((b) => (b.delayMinutes || 0) > 0).length > 0 ? 'softRed' : 'softGreen',
+        },
+        {
           id: 'users',
           label: 'User Accounts',
           icon: Users,
@@ -565,6 +580,11 @@ export default function ManagerDashboard() {
         ) : null
       }
     >
+      {/* TAB 0: REAL-TIME MONITOR */}
+      {activeTab === 'realtime-monitor' && (
+        <ManagerRealtimeMonitorTab onTabSwitch={handleTabChange} />
+      )}
+
       {/* TAB 1: USERS */}
       {activeTab === 'users' && (
         <ManagerUsersTab
