@@ -2,22 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../../Hooks/useAuth'
 import apiClient from '../../Hooks/Axios'
 import toast from 'react-hot-toast'
-<<<<<<< HEAD
-import { Search, Bus, Route as RouteIcon, MapPin, RefreshCw, Filter } from 'lucide-react'
-=======
-import { Search, Bus, Route, Navigation } from 'lucide-react'
->>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
+import { Search, Bus, Route as RouteIcon, MapPin, RefreshCw, Navigation, Filter } from 'lucide-react'
 import DashboardShell from '@/Components/Dashboard/DashboardShell'
 import { Input } from '@/Components/ui/input'
 import { Button } from '@/Components/ui/button'
 import PassengerStats from './components/PassengerStats'
 import PassengerBusesTab from './components/PassengerBusesTab'
 import PassengerRoutesTab from './components/PassengerRoutesTab'
-<<<<<<< HEAD
 import PassengerStopsTab from './components/PassengerStopsTab'
-=======
 import PassengerLiveTrackingTab from './components/PassengerLiveTrackingTab'
->>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
 
 export default function PassengerDashboard() {
   const { user } = useAuth()
@@ -26,12 +19,8 @@ export default function PassengerDashboard() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-<<<<<<< HEAD
   const [stopFilter, setStopFilter] = useState('all')
-  const [activeTab, setActiveTab] = useState('routes') // 'routes', 'buses', 'stops'
-=======
-  const [activeTab, setActiveTab] = useState('buses') // 'buses', 'routes', 'live-tracking'
->>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
+  const [activeTab, setActiveTab] = useState('routes') // 'routes', 'buses', 'stops', 'live-tracking'
 
   const fetchData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true)
@@ -180,7 +169,6 @@ export default function PassengerDashboard() {
       }}
     >
       <div className="space-y-6">
-<<<<<<< HEAD
         {/* Welcome Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -188,7 +176,9 @@ export default function PassengerDashboard() {
               Welcome, {user?.name || 'Passenger'}!
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              View available campus routes, bus stop locations, assigned buses, and departure schedules.
+              {activeTab === 'live-tracking'
+                ? 'Watch real-time campus shuttle locations and monitor live bus arrivals.'
+                : 'View available campus routes, bus stop locations, assigned buses, and departure schedules.'}
             </p>
           </div>
 
@@ -203,18 +193,6 @@ export default function PassengerDashboard() {
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh Transit Data
           </Button>
-=======
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
-            Welcome, {user?.name || 'Passenger'}!
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {activeTab === 'live-tracking'
-              ? 'Watch real-time campus shuttle locations and monitor live bus arrivals.'
-              : 'Explore live university shuttle buses, departure schedules, and campus stop locations.'}
-          </p>
->>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
         </div>
 
         {/* Quick Stats Grid */}
@@ -225,62 +203,20 @@ export default function PassengerDashboard() {
           totalStopsCount={allUniqueStops.length}
         />
 
-<<<<<<< HEAD
-        {/* Search & Dynamic Filters Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Main Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              type="text"
-              placeholder={
-                activeTab === 'routes'
-                  ? 'Search routes by name, origin, terminus, stops, or departure times...'
-                  : activeTab === 'buses'
-                  ? 'Search buses by number, model name, route, or stop...'
-                  : 'Search campus transit...'
-              }
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 bg-white"
-            />
-          </div>
-
-          {/* Filter by Campus Bus Stop */}
-          <div className="flex items-center gap-2">
-            <select
-              className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-              value={stopFilter}
-              onChange={(e) => setStopFilter(e.target.value)}
-            >
-              <option value="all">📍 All Campus Stops ({allUniqueStops.length})</option>
-              {allUniqueStops.map((stopName) => (
-                <option key={stopName} value={stopName}>
-                  {stopName}
-                </option>
-              ))}
-            </select>
-
-            {/* Filter by Bus Status (Only on Buses Tab) */}
-            {activeTab === 'buses' && (
-              <select
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">Status: All</option>
-=======
-        {/* Search and Filters (for buses & routes) */}
+        {/* Search & Dynamic Filters Bar (Hidden on Live Tracking) */}
         {activeTab !== 'live-tracking' && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Main Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 type="text"
                 placeholder={
-                  activeTab === 'buses'
-                    ? 'Search buses by number, model name, or route...'
-                    : 'Search campus routes by name or destination...'
+                  activeTab === 'routes'
+                    ? 'Search routes by name, origin, terminus, stops, or departure times...'
+                    : activeTab === 'buses'
+                    ? 'Search buses by number, model name, route, or stop...'
+                    : 'Search campus transit...'
                 }
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -288,28 +224,40 @@ export default function PassengerDashboard() {
               />
             </div>
 
-            {activeTab === 'buses' && (
+            {/* Filter by Campus Bus Stop */}
+            <div className="flex items-center gap-2">
               <select
-                className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                value={stopFilter}
+                onChange={(e) => setStopFilter(e.target.value)}
               >
-                <option value="all">All Operational Statuses</option>
->>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
-                <option value="active">Active Only</option>
-                <option value="maintenance">In Maintenance</option>
-                <option value="inactive">Inactive</option>
+                <option value="all">📍 All Campus Stops ({allUniqueStops.length})</option>
+                {allUniqueStops.map((stopName) => (
+                  <option key={stopName} value={stopName}>
+                    {stopName}
+                  </option>
+                ))}
               </select>
-            )}
+
+              {/* Filter by Bus Status (Only on Buses Tab) */}
+              {activeTab === 'buses' && (
+                <select
+                  className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">Status: All</option>
+                  <option value="active">Active Only</option>
+                  <option value="maintenance">In Maintenance</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              )}
+            </div>
           </div>
-<<<<<<< HEAD
-        </div>
-=======
         )}
->>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
 
         {/* Active Filter Pill */}
-        {stopFilter !== 'all' && (
+        {stopFilter !== 'all' && activeTab !== 'live-tracking' && (
           <div className="flex items-center gap-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg w-fit">
             <span>Filtering by bus stop: <strong>{stopFilter}</strong></span>
             <button
@@ -332,20 +280,15 @@ export default function PassengerDashboard() {
           <PassengerRoutesTab routes={filteredRoutes} buses={buses} />
         ) : activeTab === 'buses' ? (
           <PassengerBusesTab buses={filteredBuses} />
-<<<<<<< HEAD
-        ) : (
+        ) : activeTab === 'stops' ? (
           <PassengerStopsTab
             routes={routes}
             buses={buses}
             search={search}
             stopFilter={stopFilter}
           />
-=======
-        ) : activeTab === 'routes' ? (
-          <PassengerRoutesTab routes={filteredRoutes} />
         ) : (
           <PassengerLiveTrackingTab />
->>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
         )}
       </div>
     </DashboardShell>
