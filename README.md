@@ -75,3 +75,10 @@ npm run dev
   npm run build
   ```
 
+---
+
+## ✨ Features
+
+- System can display the current location and movement of active buses on an interactive map.
+
+

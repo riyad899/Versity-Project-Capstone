@@ -31,6 +31,23 @@ export const busSchema = new Schema(
       enum: ['active', 'maintenance', 'inactive'],
       default: 'active',
     },
+    tripStatus: {
+      type: String,
+      enum: ['idle', 'on_trip'],
+      default: 'idle',
+    },
+    currentTrip: {
+      type: Schema.Types.ObjectId,
+      ref: 'Trip',
+      default: null,
+    },
+    currentLocation: {
+      latitude: { type: Number, default: 23.8103 },
+      longitude: { type: Number, default: 90.4125 },
+      heading: { type: Number, default: 0 },
+      speed: { type: Number, default: 0 },
+      updatedAt: { type: Date, default: Date.now },
+    },
     assignedDriver: {
       type: Schema.Types.ObjectId,
       ref: 'User',

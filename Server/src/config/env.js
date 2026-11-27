@@ -14,6 +14,10 @@ export const envVars = {
   },
   betterAuthSecret: process.env.BETTER_AUTH_SECRET || process.env.JWT_SECRET || 'super_secret_better_auth_key_12345',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+  googleClientId: process.env.Google_Client_ID || process.env.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: process.env.Google_Client_Secret || process.env.GOOGLE_CLIENT_SECRET || '',
+  googleCallbackUrl: process.env.Google_callbackURL || process.env.GOOGLE_CALLBACK_URL || '',
 };
 
 export default envVars;

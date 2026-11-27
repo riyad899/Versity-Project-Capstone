@@ -15,15 +15,30 @@ export const routeSchema = new Schema(
       required: [true, 'Start point is required'],
       trim: true,
     },
+    startCoordinates: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+    },
     endPoint: {
       type: String,
       required: [true, 'End point is required'],
       trim: true,
     },
+    endCoordinates: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+    },
     stops: {
       type: [String],
       default: [],
     },
+    stopCoordinates: [
+      {
+        name: { type: String, required: true, trim: true },
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true },
+      },
+    ],
     scheduleTimes: {
       type: [String],
       default: [],

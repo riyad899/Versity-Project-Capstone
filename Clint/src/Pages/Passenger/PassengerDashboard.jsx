@@ -2,14 +2,22 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../../Hooks/useAuth'
 import apiClient from '../../Hooks/Axios'
 import toast from 'react-hot-toast'
+<<<<<<< HEAD
 import { Search, Bus, Route as RouteIcon, MapPin, RefreshCw, Filter } from 'lucide-react'
+=======
+import { Search, Bus, Route, Navigation } from 'lucide-react'
+>>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
 import DashboardShell from '@/Components/Dashboard/DashboardShell'
 import { Input } from '@/Components/ui/input'
 import { Button } from '@/Components/ui/button'
 import PassengerStats from './components/PassengerStats'
 import PassengerBusesTab from './components/PassengerBusesTab'
 import PassengerRoutesTab from './components/PassengerRoutesTab'
+<<<<<<< HEAD
 import PassengerStopsTab from './components/PassengerStopsTab'
+=======
+import PassengerLiveTrackingTab from './components/PassengerLiveTrackingTab'
+>>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
 
 export default function PassengerDashboard() {
   const { user } = useAuth()
@@ -18,8 +26,12 @@ export default function PassengerDashboard() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+<<<<<<< HEAD
   const [stopFilter, setStopFilter] = useState('all')
   const [activeTab, setActiveTab] = useState('routes') // 'routes', 'buses', 'stops'
+=======
+  const [activeTab, setActiveTab] = useState('buses') // 'buses', 'routes', 'live-tracking'
+>>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
 
   const fetchData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true)
@@ -155,6 +167,11 @@ export default function PassengerDashboard() {
           icon: MapPin,
           badge: filteredStopsCount,
         },
+        {
+          id: 'live-tracking',
+          label: 'Live GPS Tracking',
+          icon: Navigation,
+        },
       ]}
       activeTab={activeTab}
       onTabChange={(tab) => {
@@ -163,6 +180,7 @@ export default function PassengerDashboard() {
       }}
     >
       <div className="space-y-6">
+<<<<<<< HEAD
         {/* Welcome Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -185,6 +203,18 @@ export default function PassengerDashboard() {
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh Transit Data
           </Button>
+=======
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+            Welcome, {user?.name || 'Passenger'}!
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {activeTab === 'live-tracking'
+              ? 'Watch real-time campus shuttle locations and monitor live bus arrivals.'
+              : 'Explore live university shuttle buses, departure schedules, and campus stop locations.'}
+          </p>
+>>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
         </div>
 
         {/* Quick Stats Grid */}
@@ -195,6 +225,7 @@ export default function PassengerDashboard() {
           totalStopsCount={allUniqueStops.length}
         />
 
+<<<<<<< HEAD
         {/* Search & Dynamic Filters Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Main Search Input */}
@@ -238,13 +269,44 @@ export default function PassengerDashboard() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="all">Status: All</option>
+=======
+        {/* Search and Filters (for buses & routes) */}
+        {activeTab !== 'live-tracking' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                type="text"
+                placeholder={
+                  activeTab === 'buses'
+                    ? 'Search buses by number, model name, or route...'
+                    : 'Search campus routes by name or destination...'
+                }
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 bg-white"
+              />
+            </div>
+
+            {activeTab === 'buses' && (
+              <select
+                className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Operational Statuses</option>
+>>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
                 <option value="active">Active Only</option>
                 <option value="maintenance">In Maintenance</option>
                 <option value="inactive">Inactive</option>
               </select>
             )}
           </div>
+<<<<<<< HEAD
         </div>
+=======
+        )}
+>>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
 
         {/* Active Filter Pill */}
         {stopFilter !== 'all' && (
@@ -270,6 +332,7 @@ export default function PassengerDashboard() {
           <PassengerRoutesTab routes={filteredRoutes} buses={buses} />
         ) : activeTab === 'buses' ? (
           <PassengerBusesTab buses={filteredBuses} />
+<<<<<<< HEAD
         ) : (
           <PassengerStopsTab
             routes={routes}
@@ -277,6 +340,12 @@ export default function PassengerDashboard() {
             search={search}
             stopFilter={stopFilter}
           />
+=======
+        ) : activeTab === 'routes' ? (
+          <PassengerRoutesTab routes={filteredRoutes} />
+        ) : (
+          <PassengerLiveTrackingTab />
+>>>>>>> ca725ac49c393026dc8e9dcb8567de4c6d43e3f4
         )}
       </div>
     </DashboardShell>

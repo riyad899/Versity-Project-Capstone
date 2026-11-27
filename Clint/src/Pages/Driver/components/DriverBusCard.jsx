@@ -6,11 +6,13 @@ import {
   ArrowRight,
   MapPin,
   User,
+  Play,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card'
 import { Badge } from '@/Components/ui/badge'
+import { Button } from '@/Components/ui/button'
 
-export default function DriverBusCard({ bus, isAssignedToMe }) {
+export default function DriverBusCard({ bus, isAssignedToMe, onStartTripClick }) {
   return (
     <Card
       className={`border-slate-200/80 hover:shadow-md transition-all flex flex-col justify-between ${
@@ -27,21 +29,28 @@ export default function DriverBusCard({ bus, isAssignedToMe }) {
               {bus.name}
             </CardTitle>
           </div>
-          <Badge
-            variant={
-              bus.status === 'active'
-                ? 'softGreen'
-                : bus.status === 'maintenance'
-                ? 'softAmber'
-                : 'softRed'
-            }
-            className="capitalize text-xs"
-          >
-            {bus.status}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            {bus.tripStatus === 'on_trip' && (
+              <Badge variant="softGreen" className="text-[11px] font-bold animate-pulse">
+                On Trip
+              </Badge>
+            )}
+            <Badge
+              variant={
+                bus.status === 'active'
+                  ? 'softGreen'
+                  : bus.status === 'maintenance'
+                  ? 'softAmber'
+                  : 'softRed'
+              }
+              className="capitalize text-xs"
+            >
+              {bus.status}
+            </Badge>
+          </div>
         </div>
         {isAssignedToMe && (
-          <div className="pt-1">
+          <div className="pt-1 flex items-center justify-between">
             <Badge variant="softBlue" className="text-xs font-bold">
               <CheckCircle2 className="h-3 w-3 mr-1" /> Assigned to You
             </Badge>
@@ -112,22 +121,35 @@ export default function DriverBusCard({ bus, isAssignedToMe }) {
         )}
 
         {/* Driver status */}
-        <div className="flex items-center gap-2 text-xs text-slate-600 pt-1">
-          <User className="h-3.5 w-3.5 text-slate-400" />
-          {bus.assignedDriver ? (
-            isAssignedToMe ? (
-              <span className="font-bold text-blue-600">You are driving this bus</span>
+        <div className="flex items-center justify-between gap-2 text-xs text-slate-600 pt-1">
+          <div className="flex items-center gap-1.5 truncate">
+            <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            {bus.assignedDriver ? (
+              isAssignedToMe ? (
+                <span className="font-bold text-blue-600">You are driving this bus</span>
+              ) : (
+                <span className="truncate">
+                  Driver: <strong>{bus.assignedDriver.name}</strong>
+                </span>
+              )
             ) : (
-              <span>
-                Driver: <strong>{bus.assignedDriver.name}</strong>
-              </span>
-            )
-          ) : (
-            <span className="text-slate-400 italic">Driver: Unassigned</span>
+              <span className="text-slate-400 italic">Driver: Unassigned</span>
+            )}
+          </div>
+
+          {isAssignedToMe && onStartTripClick && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onStartTripClick}
+              className="h-8 px-3 text-xs font-bold shrink-0 bg-blue-600 hover:bg-blue-700"
+            >
+              <Play className="h-3 w-3 mr-1 fill-current" />
+              Go to Trip
+            </Button>
           )}
         </div>
       </CardContent>
     </Card>
   )
 }
-

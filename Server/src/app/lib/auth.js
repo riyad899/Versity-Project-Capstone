@@ -14,6 +14,14 @@ export const getAuth = () => {
     }
     const db = mongoClient.db();
 
+    const socialProviders = {};
+    if (envVars.googleClientId && envVars.googleClientSecret) {
+      socialProviders.google = {
+        clientId: envVars.googleClientId,
+        clientSecret: envVars.googleClientSecret,
+      };
+    }
+
     authInstance = betterAuth({
       database: mongodbAdapter(db, { client: mongoClient }),
       secret: envVars.betterAuthSecret,
@@ -21,6 +29,7 @@ export const getAuth = () => {
       emailAndPassword: {
         enabled: true,
       },
+      socialProviders: Object.keys(socialProviders).length > 0 ? socialProviders : undefined,
       plugins: [
         bearer(),
         admin({
