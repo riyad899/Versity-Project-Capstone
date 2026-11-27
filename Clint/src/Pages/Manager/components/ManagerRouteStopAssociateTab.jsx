@@ -15,6 +15,7 @@ import {
   Navigation,
   Bus,
   Layers,
+  Map as MapIcon,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/Components/ui/card'
 import { Button } from '@/Components/ui/button'
@@ -22,6 +23,7 @@ import { Badge } from '@/Components/ui/badge'
 import { Input } from '@/Components/ui/input'
 import EditStopModal from './EditStopModal'
 import EditTerminalModal from './EditTerminalModal'
+import RoutePickerMap from '@/Components/Map/RoutePickerMap'
 
 export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRoutes }) {
   const [routesData, setRoutesData] = useState([])
@@ -30,9 +32,11 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
   const [newStopInputs, setNewStopInputs] = useState({})
   const [actionLoading, setActionLoading] = useState({})
 
-  // Modals state
+  // Modals & Map state
   const [editStopModal, setEditStopModal] = useState(null)
   const [editTerminalModal, setEditTerminalModal] = useState(null)
+  const [openMapRouteId, setOpenMapRouteId] = useState(null)
+  const [mapPickMode, setMapPickMode] = useState('stop') // 'origin' | 'stop' | 'destination'
 
   // Fetch routes with stop associations
   const fetchRoutesWithStops = useCallback(async (isSilent = false) => {
@@ -128,11 +132,11 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
     }
   }
 
-  // Submit edit stop rename
+  // Submit edit stop rename & coordinates
   const handleEditStopSubmit = async (e) => {
     e.preventDefault()
     if (!editStopModal) return
-    const { routeId, oldStopName, newStopName } = editStopModal
+    const { routeId, oldStopName, newStopName, lat, lng } = editStopModal
     if (!newStopName.trim()) {
       toast.error('Stop name cannot be empty')
       return
@@ -142,20 +146,21 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
       await apiClient.patch(`/api/v1/stop-associated/${routeId}/stops`, {
         oldStopName,
         newStopName: newStopName.trim(),
+        ...(lat != null && lng != null ? { lat: Number(lat), lng: Number(lng) } : {}),
       })
-      toast.success('Stop renamed successfully')
+      toast.success('Stop updated successfully')
       setEditStopModal(null)
       await refreshAll()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to rename stop')
+      toast.error(err.response?.data?.message || 'Failed to update stop')
     }
   }
 
-  // Submit edit terminal destinations
+  // Submit edit terminal destinations & coordinates
   const handleEditTerminalSubmit = async (e) => {
     e.preventDefault()
     if (!editTerminalModal) return
-    const { routeId, startPoint, endPoint } = editTerminalModal
+    const { routeId, startPoint, endPoint, startCoordinates, endCoordinates } = editTerminalModal
     if (!startPoint.trim() || !endPoint.trim()) {
       toast.error('Both origin and destination are required')
       return
@@ -165,12 +170,61 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
       await apiClient.patch(`/api/v1/stop-associated/${routeId}/endpoints`, {
         startPoint: startPoint.trim(),
         endPoint: endPoint.trim(),
+        ...(startCoordinates?.lat != null ? { startCoordinates } : {}),
+        ...(endCoordinates?.lat != null ? { endCoordinates } : {}),
       })
       toast.success('Route terminals updated successfully')
       setEditTerminalModal(null)
       await refreshAll()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update terminals')
+    }
+  }
+
+  // Handle interactive map click inside Route Stop Associate
+  const handleCardMapPick = async (route, mode, { lat, lng, placeName }) => {
+    const routeId = route._id || route.id
+    const stopsCount = Array.isArray(route.stops) ? route.stops.length : 0
+
+    if (mode === 'stop') {
+      const stopName = placeName || `Stop #${stopsCount + 1} (${lat.toFixed(3)}, ${lng.toFixed(3)})`
+      try {
+        await apiClient.post(`/api/v1/stop-associated/${routeId}/stops`, {
+          stopName,
+          lat,
+          lng,
+        })
+        toast.success(`Pinned & added stop "${stopName}"`)
+        await refreshAll()
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to add stop from map')
+      }
+    } else if (mode === 'origin') {
+      const newStartPoint = placeName || route.startPoint
+      try {
+        await apiClient.patch(`/api/v1/stop-associated/${routeId}/endpoints`, {
+          startPoint: newStartPoint,
+          endPoint: route.endPoint,
+          startCoordinates: { lat, lng },
+        })
+        toast.success(`Origin updated to "${newStartPoint}" (${lat.toFixed(4)}, ${lng.toFixed(4)})`)
+        await refreshAll()
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to update origin from map')
+      }
+    } else if (mode === 'destination') {
+      const newEndPoint = placeName || route.endPoint
+      try {
+        await apiClient.patch(`/api/v1/stop-associated/${routeId}/endpoints`, {
+          startPoint: route.startPoint,
+          endPoint: newEndPoint,
+          endCoordinates: { lat, lng },
+        })
+        toast.success(`Destination updated to "${newEndPoint}" (${lat.toFixed(4)}, ${lng.toFixed(4)})`)
+        await refreshAll()
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to update destination from map')
+      }
     }
   }
 
@@ -279,26 +333,72 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
                     </CardDescription>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs font-semibold text-slate-700 self-start sm:self-auto"
-                    onClick={() =>
-                      setEditTerminalModal({
-                        routeId,
-                        routeName: route.routeName,
-                        startPoint: route.startPoint,
-                        endPoint: route.endPoint,
-                      })
-                    }
-                  >
-                    <Pencil className="h-3 w-3 mr-1 text-slate-500" />
-                    Edit Terminals
-                  </Button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button
+                      type="button"
+                      variant={openMapRouteId === routeId ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 text-xs font-semibold ${
+                        openMapRouteId === routeId ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-blue-700 border-blue-200 hover:bg-blue-50'
+                      }`}
+                      onClick={() => setOpenMapRouteId(openMapRouteId === routeId ? null : routeId)}
+                    >
+                      <MapIcon className="h-3.5 w-3.5 mr-1.5" />
+                      {openMapRouteId === routeId ? 'Hide Map' : 'Map & Pin Stops'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs font-semibold text-slate-700"
+                      onClick={() =>
+                        setEditTerminalModal({
+                          routeId,
+                          routeName: route.routeName,
+                          startPoint: route.startPoint,
+                          endPoint: route.endPoint,
+                          startCoordinates: route.startCoordinates || null,
+                          endCoordinates: route.endCoordinates || null,
+                          stopCoordinates:
+                            Array.isArray(route.stopCoordinates) && route.stopCoordinates.length > 0
+                              ? route.stopCoordinates
+                              : stops.map((s, idx) => ({
+                                  name: s,
+                                  lat: (route.startCoordinates?.lat || 23.8103) + 0.002 * (idx + 1),
+                                  lng: (route.startCoordinates?.lng || 90.4125) + 0.002 * (idx + 1),
+                                })),
+                        })
+                      }
+                    >
+                      <Pencil className="h-3 w-3 mr-1 text-slate-500" />
+                      Edit Terminals
+                    </Button>
+                  </div>
                 </CardHeader>
 
                 <CardContent className="p-6 space-y-6">
+                  {/* Interactive Map Editor for this Route */}
+                  {openMapRouteId === routeId && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/30 p-4 space-y-2">
+                      <RoutePickerMap
+                        startCoordinates={route.startCoordinates}
+                        endCoordinates={route.endCoordinates}
+                        stopCoordinates={
+                          Array.isArray(route.stopCoordinates) && route.stopCoordinates.length > 0
+                            ? route.stopCoordinates
+                            : stops.map((s, idx) => ({
+                                name: s,
+                                lat: (route.startCoordinates?.lat || 23.8103) + 0.002 * (idx + 1),
+                                lng: (route.startCoordinates?.lng || 90.4125) + 0.002 * (idx + 1),
+                              }))
+                        }
+                        pickMode={mapPickMode}
+                        setPickMode={setMapPickMode}
+                        onMapPick={(mode, coords) => handleCardMapPick(route, mode, coords)}
+                        height="320px"
+                      />
+                    </div>
+                  )}
                   {/* Journey Overview Bar */}
                   <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -385,8 +485,18 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
                                 <span className="text-sm font-semibold text-slate-900 truncate block">
                                   {stopName}
                                 </span>
-                                <span className="text-[11px] text-slate-400 block">
-                                  Transit stop {idx + 1} of {stops.length}
+                                <span className="text-[11px] text-slate-400 flex items-center gap-2">
+                                  <span>Transit stop {idx + 1} of {stops.length}</span>
+                                  {(() => {
+                                    const matchedCoord = (route.stopCoordinates || []).find(
+                                      (c) => c.name?.toLowerCase() === stopName.toLowerCase()
+                                    )
+                                    return matchedCoord?.lat != null ? (
+                                      <span className="font-mono text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                                        {Number(matchedCoord.lat).toFixed(4)}, {Number(matchedCoord.lng).toFixed(4)}
+                                      </span>
+                                    ) : null
+                                  })()}
                                 </span>
                               </div>
                             </div>
@@ -420,15 +530,33 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-slate-500 hover:text-blue-600 hover:bg-blue-50 ml-1"
-                                title="Rename Stop"
-                                onClick={() =>
+                                title="Edit Stop & Map Location"
+                                onClick={() => {
+                                  const allStopCoords =
+                                    Array.isArray(route.stopCoordinates) && route.stopCoordinates.length > 0
+                                      ? route.stopCoordinates
+                                      : stops.map((s, sIdx) => ({
+                                          name: s,
+                                          lat: (route.startCoordinates?.lat || 23.8103) + 0.002 * (sIdx + 1),
+                                          lng: (route.startCoordinates?.lng || 90.4125) + 0.002 * (sIdx + 1),
+                                        }))
+                                  const currentCoord = allStopCoords.find(
+                                    (c) => c.name?.toLowerCase() === stopName.toLowerCase()
+                                  )
                                   setEditStopModal({
                                     routeId,
                                     routeName: route.routeName,
                                     oldStopName: stopName,
                                     newStopName: stopName,
+                                    lat: currentCoord?.lat ?? null,
+                                    lng: currentCoord?.lng ?? null,
+                                    startPoint: route.startPoint,
+                                    endPoint: route.endPoint,
+                                    startCoordinates: route.startCoordinates || null,
+                                    endCoordinates: route.endCoordinates || null,
+                                    allStopCoordinates: allStopCoords,
                                   })
-                                }
+                                }}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
@@ -461,8 +589,12 @@ export default function ManagerRouteStopAssociateTab({ routes = [], onRefreshRou
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                       <Input
                         type="text"
-                        placeholder="Add intermediate stop (e.g. Science Complex, Library, Dorms)..."
+                        placeholder="Add intermediate stop (click to view map & pin stops)..."
                         value={newStopValue}
+                        onFocus={() => {
+                          setMapPickMode('stop')
+                          setOpenMapRouteId(routeId)
+                        }}
                         onChange={(e) =>
                           setNewStopInputs({ ...newStopInputs, [routeId]: e.target.value })
                         }

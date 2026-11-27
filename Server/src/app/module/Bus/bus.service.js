@@ -59,7 +59,7 @@ const getAllBusesFromDB = async (query = {}) => {
 
   const buses = await Bus.find(filter)
     .populate('assignedDriver', 'name email image role')
-    .populate('assignedRoute', 'routeName startPoint endPoint stops status')
+    .populate('assignedRoute', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates status')
     .populate('createdBy', 'name email role')
     .sort({ createdAt: -1 });
 
@@ -69,7 +69,7 @@ const getAllBusesFromDB = async (query = {}) => {
 const getBusByIdFromDB = async (id) => {
   const bus = await Bus.findById(id)
     .populate('assignedDriver', 'name email image role')
-    .populate('assignedRoute', 'routeName startPoint endPoint stops status')
+    .populate('assignedRoute', 'routeName startPoint startCoordinates endPoint endCoordinates stops stopCoordinates status')
     .populate('createdBy', 'name email role');
 
   if (!bus) {

@@ -34,7 +34,7 @@ const getRouteStopsByIdFromDB = async (routeId) => {
   };
 };
 
-const addStopToRouteInDB = async (routeId, stopName) => {
+const addStopToRouteInDB = async (routeId, stopName, lat = null, lng = null) => {
   const route = await RouteModel.findById(routeId);
   if (!route) {
     throw new AppError(404, 'Route not found');
@@ -49,11 +49,27 @@ const addStopToRouteInDB = async (routeId, stopName) => {
 
   currentStops.push(cleanStop);
   route.stops = currentStops;
+
+  // Keep stopCoordinates in sync
+  const currentStopCoords = Array.isArray(route.stopCoordinates) ? [...route.stopCoordinates] : [];
+  if (lat != null && lng != null) {
+    currentStopCoords.push({ name: cleanStop, lat: Number(lat), lng: Number(lng) });
+  } else {
+    const baseLat = route.startCoordinates?.lat ?? 23.8103;
+    const baseLng = route.startCoordinates?.lng ?? 90.4125;
+    currentStopCoords.push({
+      name: cleanStop,
+      lat: Number((baseLat + 0.002 * currentStops.length).toFixed(6)),
+      lng: Number((baseLng + 0.002 * currentStops.length).toFixed(6)),
+    });
+  }
+  route.stopCoordinates = currentStopCoords;
+
   await route.save();
   return route;
 };
 
-const updateStopInRouteInDB = async (routeId, oldStopName, newStopName) => {
+const updateStopInRouteInDB = async (routeId, oldStopName, newStopName, lat = null, lng = null) => {
   const route = await RouteModel.findById(routeId);
   if (!route) {
     throw new AppError(404, 'Route not found');
@@ -70,6 +86,19 @@ const updateStopInRouteInDB = async (routeId, oldStopName, newStopName) => {
 
   currentStops[index] = cleanNew;
   route.stops = currentStops;
+
+  // Sync stopCoordinates
+  const currentStopCoords = Array.isArray(route.stopCoordinates) ? [...route.stopCoordinates] : [];
+  const coordIndex = currentStopCoords.findIndex((s) => s.name?.toLowerCase() === cleanOld.toLowerCase());
+  if (coordIndex !== -1) {
+    currentStopCoords[coordIndex].name = cleanNew;
+    if (lat != null && lng != null) {
+      currentStopCoords[coordIndex].lat = Number(lat);
+      currentStopCoords[coordIndex].lng = Number(lng);
+    }
+    route.stopCoordinates = currentStopCoords;
+  }
+
   await route.save();
   return route;
 };
@@ -89,6 +118,11 @@ const removeStopFromRouteInDB = async (routeId, stopName) => {
   }
 
   route.stops = updatedStops;
+  if (Array.isArray(route.stopCoordinates)) {
+    route.stopCoordinates = route.stopCoordinates.filter(
+      (s) => s.name?.toLowerCase() !== cleanStop.toLowerCase()
+    );
+  }
   await route.save();
   return route;
 };
@@ -99,12 +133,34 @@ const updateAllStopsInRouteInDB = async (routeId, stopsArray) => {
     throw new AppError(404, 'Route not found');
   }
 
-  route.stops = stopsArray.map((s) => s.trim()).filter(Boolean);
+  const cleanStops = stopsArray.map((s) => s.trim()).filter(Boolean);
+  route.stops = cleanStops;
+
+  // Reorder stopCoordinates to match cleanStops
+  if (Array.isArray(route.stopCoordinates) && route.stopCoordinates.length > 0) {
+    const reorderedCoords = [];
+    cleanStops.forEach((name, idx) => {
+      const match = route.stopCoordinates.find((c) => c.name?.toLowerCase() === name.toLowerCase());
+      if (match) {
+        reorderedCoords.push(match);
+      } else {
+        const baseLat = route.startCoordinates?.lat ?? 23.8103;
+        const baseLng = route.startCoordinates?.lng ?? 90.4125;
+        reorderedCoords.push({
+          name,
+          lat: Number((baseLat + 0.002 * (idx + 1)).toFixed(6)),
+          lng: Number((baseLng + 0.002 * (idx + 1)).toFixed(6)),
+        });
+      }
+    });
+    route.stopCoordinates = reorderedCoords;
+  }
+
   await route.save();
   return route;
 };
 
-const updateRouteEndpointsInDB = async (routeId, startPoint, endPoint) => {
+const updateRouteEndpointsInDB = async (routeId, startPoint, endPoint, startCoordinates = null, endCoordinates = null) => {
   const route = await RouteModel.findById(routeId);
   if (!route) {
     throw new AppError(404, 'Route not found');
@@ -112,6 +168,12 @@ const updateRouteEndpointsInDB = async (routeId, startPoint, endPoint) => {
 
   route.startPoint = startPoint.trim();
   route.endPoint = endPoint.trim();
+  if (startCoordinates && startCoordinates.lat != null && startCoordinates.lng != null) {
+    route.startCoordinates = { lat: Number(startCoordinates.lat), lng: Number(startCoordinates.lng) };
+  }
+  if (endCoordinates && endCoordinates.lat != null && endCoordinates.lng != null) {
+    route.endCoordinates = { lat: Number(endCoordinates.lat), lng: Number(endCoordinates.lng) };
+  }
   await route.save();
   return route;
 };

@@ -1,0 +1,259 @@
+{
+  "info": {
+    "_postman_id": "route-stop-associated-api-collection",
+    "name": "Route Stop Associate API Collection",
+    "description": "Complete Postman API test collection for Route Stop Associated (Transportation Manager) features",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5009",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "routeId",
+      "value": "YOUR_ROUTE_ID_HERE",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Auth - Manager Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.token) {",
+              "        pm.collectionVariables.set('token', jsonData.data.token);",
+              "        console.log('Token saved:', jsonData.data.token);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"manager@gmail.com\",\n  \"password\": \"12345678\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "1. GET All Routes with Associated Stops",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "if (jsonData.data && jsonData.data.length > 0) {",
+              "    pm.collectionVariables.set('routeId', jsonData.data[0]._id || jsonData.data[0].id);",
+              "    console.log('Active routeId set to: ' + pm.collectionVariables.get('routeId'));",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated"]
+        }
+      }
+    },
+    {
+      "name": "2. GET Single Route Stops Detail",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated/{{routeId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated", "{{routeId}}"]
+        }
+      }
+    },
+    {
+      "name": "3. POST Add Stop to Route",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stopName\": \"Central Library Plaza\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated/{{routeId}}/stops",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated", "{{routeId}}", "stops"]
+        }
+      }
+    },
+    {
+      "name": "4. PATCH Update/Rename Stop in Route",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldStopName\": \"Central Library Plaza\",\n  \"newStopName\": \"University Central Library\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated/{{routeId}}/stops",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated", "{{routeId}}", "stops"]
+        }
+      }
+    },
+    {
+      "name": "5. PUT Reorder All Stops in Route",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stops\": [\n    \"Science Faculty Complex\",\n    \"University Central Library\",\n    \"Cafeteria Point\",\n    \"Auditorium Hall\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated/{{routeId}}/stops",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated", "{{routeId}}", "stops"]
+        }
+      }
+    },
+    {
+      "name": "6. DELETE Remove Stop from Route (URL Param)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated/{{routeId}}/stops/Cafeteria%20Point",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated", "{{routeId}}", "stops", "Cafeteria%20Point"]
+        }
+      }
+    },
+    {
+      "name": "7. PATCH Update Route Endpoints (Terminals)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"startPoint\": \"Main Campus North Gate\",\n  \"endPoint\": \"Student Dormitory West\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated/{{routeId}}/endpoints",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated", "{{routeId}}", "endpoints"]
+        }
+      }
+    },
+    {
+      "name": "8. (Error Test) Add Duplicate Stop",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stopName\": \"University Central Library\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/stop-associated/{{routeId}}/stops",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "stop-associated", "{{routeId}}", "stops"]
+        }
+      }
+    }
+  ]
+}

@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../Hooks/useAuth'
 import apiClient from '../../Hooks/Axios'
 import toast from 'react-hot-toast'
-import { Search, Bus, Route } from 'lucide-react'
+import { Search, Bus, Route, Navigation } from 'lucide-react'
 import DashboardShell from '@/Components/Dashboard/DashboardShell'
 import { Input } from '@/Components/ui/input'
 import PassengerStats from './components/PassengerStats'
 import PassengerBusesTab from './components/PassengerBusesTab'
 import PassengerRoutesTab from './components/PassengerRoutesTab'
+import PassengerLiveTrackingTab from './components/PassengerLiveTrackingTab'
 
 export default function PassengerDashboard() {
   const { user } = useAuth()
@@ -16,7 +17,7 @@ export default function PassengerDashboard() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [activeTab, setActiveTab] = useState('buses') // 'buses' or 'routes'
+  const [activeTab, setActiveTab] = useState('buses') // 'buses', 'routes', 'live-tracking'
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -85,6 +86,11 @@ export default function PassengerDashboard() {
           icon: Route,
           badge: filteredRoutes.length,
         },
+        {
+          id: 'live-tracking',
+          label: 'Live GPS Tracking',
+          icon: Navigation,
+        },
       ]}
       activeTab={activeTab}
       onTabChange={(tab) => {
@@ -99,7 +105,9 @@ export default function PassengerDashboard() {
             Welcome, {user?.name || 'Passenger'}!
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Explore live university shuttle buses, departure schedules, and campus stop locations.
+            {activeTab === 'live-tracking'
+              ? 'Watch real-time campus shuttle locations and monitor live bus arrivals.'
+              : 'Explore live university shuttle buses, departure schedules, and campus stop locations.'}
           </p>
         </div>
 
@@ -110,36 +118,38 @@ export default function PassengerDashboard() {
           totalBusesCount={buses.length}
         />
 
-        {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              type="text"
-              placeholder={
-                activeTab === 'buses'
-                  ? 'Search buses by number, model name, or route...'
-                  : 'Search campus routes by name or destination...'
-              }
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 bg-white"
-            />
-          </div>
+        {/* Search and Filters (for buses & routes) */}
+        {activeTab !== 'live-tracking' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                type="text"
+                placeholder={
+                  activeTab === 'buses'
+                    ? 'Search buses by number, model name, or route...'
+                    : 'Search campus routes by name or destination...'
+                }
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 bg-white"
+              />
+            </div>
 
-          {activeTab === 'buses' && (
-            <select
-              className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All Operational Statuses</option>
-              <option value="active">Active Only</option>
-              <option value="maintenance">In Maintenance</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          )}
-        </div>
+            {activeTab === 'buses' && (
+              <select
+                className="h-11 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-2xs outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Operational Statuses</option>
+                <option value="active">Active Only</option>
+                <option value="maintenance">In Maintenance</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            )}
+          </div>
+        )}
 
         {/* Content Area */}
         {loading ? (
@@ -149,8 +159,10 @@ export default function PassengerDashboard() {
           </div>
         ) : activeTab === 'buses' ? (
           <PassengerBusesTab buses={filteredBuses} />
-        ) : (
+        ) : activeTab === 'routes' ? (
           <PassengerRoutesTab routes={filteredRoutes} />
+        ) : (
+          <PassengerLiveTrackingTab />
         )}
       </div>
     </DashboardShell>

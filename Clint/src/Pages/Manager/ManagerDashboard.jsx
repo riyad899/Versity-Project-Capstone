@@ -83,8 +83,11 @@ export default function ManagerDashboard() {
   const [routeForm, setRouteForm] = useState({
     routeName: '',
     startPoint: '',
+    startCoordinates: null,
     endPoint: '',
+    endCoordinates: null,
     stops: '',
+    stopCoordinates: [],
     scheduleTimes: '',
     status: 'active',
   })
@@ -303,8 +306,11 @@ export default function ManagerDashboard() {
     setRouteForm({
       routeName: '',
       startPoint: '',
+      startCoordinates: null,
       endPoint: '',
+      endCoordinates: null,
       stops: '',
+      stopCoordinates: [],
       scheduleTimes: '',
       status: 'active',
     })
@@ -313,9 +319,17 @@ export default function ManagerDashboard() {
   const handleRouteSubmit = async (e) => {
     e.preventDefault()
     try {
-      const stopsArr = routeForm.stops
-        ? routeForm.stops.split(',').map((s) => s.trim()).filter(Boolean)
+      const stopCoords = Array.isArray(routeForm.stopCoordinates)
+        ? routeForm.stopCoordinates.filter((s) => s.name?.trim())
         : []
+
+      const stopsArr =
+        stopCoords.length > 0
+          ? stopCoords.map((s) => s.name.trim())
+          : routeForm.stops
+          ? routeForm.stops.split(',').map((s) => s.trim()).filter(Boolean)
+          : []
+
       const schedArr = routeForm.scheduleTimes
         ? routeForm.scheduleTimes.split(',').map((s) => s.trim()).filter(Boolean)
         : []
@@ -323,18 +337,21 @@ export default function ManagerDashboard() {
       const payload = {
         routeName: routeForm.routeName,
         startPoint: routeForm.startPoint,
+        startCoordinates: routeForm.startCoordinates || null,
         endPoint: routeForm.endPoint,
+        endCoordinates: routeForm.endCoordinates || null,
         stops: stopsArr,
+        stopCoordinates: stopCoords,
         scheduleTimes: schedArr,
         status: routeForm.status,
       }
 
       if (editingRoute) {
         await apiClient.patch(`/api/v1/routes/${editingRoute._id || editingRoute.id}`, payload)
-        toast.success('Route updated successfully!')
+        toast.success('Route & map coordinates updated successfully!')
       } else {
         await apiClient.post('/api/v1/routes', payload)
-        toast.success('Route created successfully!')
+        toast.success('Route & map coordinates created successfully!')
       }
 
       setShowRouteModal(false)
@@ -347,11 +364,27 @@ export default function ManagerDashboard() {
 
   const startEditRoute = (route) => {
     setEditingRoute(route)
+
+    // Build stopCoordinates from saved stopCoordinates or fallback to stops array
+    let existingStopCoords = Array.isArray(route.stopCoordinates) ? route.stopCoordinates : []
+    if (existingStopCoords.length === 0 && Array.isArray(route.stops) && route.stops.length > 0) {
+      const baseLat = route.startCoordinates?.lat || 23.8103
+      const baseLng = route.startCoordinates?.lng || 90.4125
+      existingStopCoords = route.stops.map((name, idx) => ({
+        name,
+        lat: Number((baseLat + 0.002 * (idx + 1)).toFixed(6)),
+        lng: Number((baseLng + 0.002 * (idx + 1)).toFixed(6)),
+      }))
+    }
+
     setRouteForm({
       routeName: route.routeName,
       startPoint: route.startPoint,
+      startCoordinates: route.startCoordinates?.lat != null ? route.startCoordinates : null,
       endPoint: route.endPoint,
+      endCoordinates: route.endCoordinates?.lat != null ? route.endCoordinates : null,
       stops: route.stops?.join(', ') || '',
+      stopCoordinates: existingStopCoords,
       scheduleTimes: route.scheduleTimes?.join(', ') || '',
       status: route.status,
     })
